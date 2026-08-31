@@ -49,7 +49,7 @@ export const emptyForm = (leito = '') => ({
   dev_outros_sim: false, dev_outros_nao: false, dev_outros_ausente: false, dev_outros_obs: '',
 
   proc: '',
-  lpp_sim: false, lpp_nao: false, lpp_local: '', lpp_tratamento: '',
+  lpp_sim: false, lpp_nao: false, lpp_lesoes: [], lpp_tratamento: '',
   hig_sim: false, hig_nao: false, hig_escova_sim: false, hig_escova_nao: false,
   vis_usual: false, vis_estendida: false, vis_12h: false, vis_24h: false,
   alta_prevista: false, alta_data: '', alta_nao: false,
@@ -96,7 +96,7 @@ const SUGESTOES = {
                       'Instabilidade hemodinâmica', 'Assincronia ventilatória', 'Bloqueio neuromuscular',
                       'Status epilepticus', 'Hipoxemia grave'],
   desm_motivo:       ['Ventilação com parâmetros elevados', 'Sem sensório'],
-  lpp_local:         ['Sacral', 'Calcâneo'],
+  lpp_local:         ['Sacral', 'Calcâneo', 'Trocantérica', 'Occipital', 'Maleolar', 'Isquiática'],
   sec_aspecto:       ['Mucoide', 'Hialina', 'Purulenta', 'Piossanguinolenta', 'Sanguinolenta'],
   dev_cv_sitio:      ['VJiD', 'VJiE', 'VSCD', 'VSCE', 'VAD', 'VAE', 'VFD', 'VFE'],
   dev_shilley_sitio: ['VJiD', 'VJiE', 'VSCD', 'VSCE', 'VAD', 'VAE', 'VFD', 'VFE'],
@@ -108,6 +108,18 @@ const SUGESTOES = {
   plano:             ['Pausa de sedação', 'Vigiar sinais de infecção', 'Vigiar desconforto',
                       'Vigiar padrão ventilatório', 'Neuroproteção'],
 };
+
+// Classificação das lesões por pressão (NPUAP/EPUAP).
+const CLASSIFICACOES_LPP = [
+  'Estágio 1', 'Estágio 2', 'Estágio 3', 'Estágio 4',
+  'Lesão tissular profunda', 'LPRDM', 'Não classificável',
+];
+
+/** "Sacral (Estágio 2); Calcâneo (LPRDM)" — texto da folha impressa. */
+const resumoLesoes = (lesoes = []) => lesoes
+  .filter(l => l.local?.trim())
+  .map(l => `${l.local.trim()}${l.classificacao ? ` (${l.classificacao})` : ''}`)
+  .join('; ');
 
 const RASS_OPTIONS = [
   { value: '+4', label: '+4 — Combativo' },
@@ -304,6 +316,97 @@ function Sugestoes({ opcoes = [], valor = '', onChange, cor, placeholder, T, inp
   );
 }
 
+/**
+ * Editor das lesões por pressão.
+ *
+ * Cada lesão é um registro próprio com local e classificação, e não um item
+ * numa lista de texto: o mesmo sítio pode ter duas lesões de estágios
+ * diferentes, e uma lista simples não daria conta disso.
+ */
+function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
+  const atualizar = (id, campo, valor) =>
+    onChange(lesoes.map(l => (l.id === id ? { ...l, [campo]: valor } : l)));
+
+  const acrescentar = (local = '') =>
+    onChange([...lesoes, { id: Date.now() + Math.random(), local, classificacao: '' }]);
+
+  const remover = (id) => onChange(lesoes.filter(l => l.id !== id));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 260 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: T.textMuted, marginRight: 2 }}>Acrescentar lesão:</span>
+        {SUGESTOES.lpp_local.map(op => (
+          <button key={op} type="button" onClick={() => acrescentar(op)}
+            style={{
+              padding: '7px 13px', borderRadius: 20, fontSize: 13.5, fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer', minHeight: 40,
+              border: `1.5px solid ${T.border}`, background: 'transparent', color: T.textMuted,
+            }}>+ {op}</button>
+        ))}
+        <button type="button" onClick={() => acrescentar('')}
+          style={{
+            padding: '7px 13px', borderRadius: 20, fontSize: 13.5, fontWeight: 700,
+            fontFamily: 'inherit', cursor: 'pointer', minHeight: 40,
+            border: `1.5px solid ${cor}45`, background: `${cor}12`, color: cor,
+          }}>+ Outro local</button>
+      </div>
+
+      {lesoes.length === 0 && (
+        <div style={{ fontSize: 13, color: T.textDim, fontStyle: 'italic' }}>
+          Nenhuma lesão registrada. Toque num sítio acima para acrescentar.
+        </div>
+      )}
+
+      {lesoes.map((l, i) => (
+        <div key={l.id} style={{
+          border: `1.5px solid ${cor}35`, background: `${cor}0c`,
+          borderRadius: 12, padding: '12px 13px',
+          display: 'flex', flexDirection: 'column', gap: 9,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <span style={{
+              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+              background: `${cor}22`, color: cor, fontWeight: 800, fontSize: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{i + 1}</span>
+            <input type="text" value={l.local}
+              onChange={e => atualizar(l.id, 'local', e.target.value)}
+              placeholder="local da lesão"
+              style={{ ...inputStyle(), flex: 1 }}
+              onFocus={e => { e.target.style.borderColor = cor; }}
+              onBlur={e  => { e.target.style.borderColor = T.border; }}
+            />
+            <button type="button" onClick={() => remover(l.id)}
+              style={{
+                minHeight: 40, padding: '0 13px', borderRadius: 9,
+                background: 'none', border: `1.5px solid ${T.border}`, color: T.textMuted,
+                fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
+              }}>✕</button>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {CLASSIFICACOES_LPP.map(c => {
+              const marcado = l.classificacao === c;
+              return (
+                <button key={c} type="button" aria-pressed={marcado}
+                  onClick={() => atualizar(l.id, 'classificacao', marcado ? '' : c)}
+                  style={{
+                    padding: '6px 12px', borderRadius: 18, fontSize: 13, fontWeight: 600,
+                    fontFamily: 'inherit', cursor: 'pointer', minHeight: 38,
+                    border: `1.5px solid ${marcado ? cor : T.border}`,
+                    background: marcado ? `${cor}25` : 'transparent',
+                    color: marcado ? cor : T.textMuted,
+                  }}>{c}</button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Caixa de marcação e linha pontilhada da folha. Declaradas fora do render:
 // componentes criados dentro dele são recriados a cada pintura.
 const PCB = ({ c }) => <span className={`rp-box${c ? ' on' : ''}`}>{c ? '✓' : ''}</span>;
@@ -470,7 +573,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
           <div className="rp-row" style={{ flexDirection:'column', alignItems:'flex-start', gap:'2pt' }}>
             <span className="rp-bold">11. Lesão por pressão?</span>
             <span>
-              <span className="rp-cb"><PCB c={form.lpp_sim} /> Sim — Local: <UL v={form.lpp_local} /></span>
+              <span className="rp-cb"><PCB c={form.lpp_sim} /> Sim — <UL v={resumoLesoes(form.lpp_lesoes)} xl /></span>
               <span className="rp-cb" style={{ marginLeft:'6pt' }}><PCB c={form.lpp_nao} /> Não</span>
             </span>
             <span style={{ fontSize:'8.5pt' }}>Tratamento: <UL v={form.lpp_tratamento} w /></span>
@@ -605,6 +708,17 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
 
   const imprimir = () => {
     setPreview(false);
+    // Navegadores usam o título do documento como nome padrão ao "Salvar como
+    // PDF". Trocá-lo antes de imprimir faz o arquivo já nascer como "11.pdf",
+    // e o título volta ao normal assim que a caixa de impressão fecha.
+    const tituloOriginal = document.title;
+    document.title = leito ? String(leito) : 'round';
+    const restaurar = () => {
+      document.title = tituloOriginal;
+      window.removeEventListener('afterprint', restaurar);
+    };
+    window.addEventListener('afterprint', restaurar);
+    setTimeout(restaurar, 60000); // rede de segurança: nem todo navegador dispara afterprint
     // Espera o React pintar a folha no portal, ajusta a escala e só então
     // abre a caixa de impressão — senão o navegador mediria a folha antiga.
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -720,7 +834,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
                 background: 'linear-gradient(135deg,#2d8cf0,#1a5fbd)', color: '#fff',
                 border: 'none', padding: '12px 26px', borderRadius: 10,
                 fontWeight: 700, fontSize: 15, minHeight: 48, cursor: 'pointer', fontFamily: 'inherit',
-              }}>🖨️ Imprimir esta folha</button>
+              }}>🖨️ Imprimir / Salvar</button>
             </div>
           )}
         </>,
@@ -777,7 +891,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
             color: '#fff', border: 'none', padding: '12px 22px', borderRadius: 10,
             fontWeight: 700, fontSize: 15, minHeight: 48, cursor: 'pointer',
             fontFamily: 'inherit', boxShadow: `0 0 16px ${ac}35`,
-          }}>🖨️ Imprimir / PDF</button>
+          }}>🖨️ Imprimir / Salvar</button>
 
           <button onClick={onConcluir} style={{
             background: `linear-gradient(135deg,${gr},#1a7a50)`, border: 'none',
@@ -1115,14 +1229,12 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {numBadge(11, or)}
               <span style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Lesão por Pressão</span>
             </div>
-            <div style={rowStyle}>
+            <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
               {CB('lpp_sim', 'Sim', re)}
               {CB('lpp_nao', 'Não', gr)}
               {form.lpp_sim && <>
-                <span style={lblStyle}>Local:</span>
-                <Sugestoes opcoes={SUGESTOES.lpp_local} valor={form.lpp_local}
-                  onChange={v => upd('lpp_local', v)} cor={re} T={T} inputStyle={inputStyle}
-                  placeholder="outro local"/>
+                <EditorLesoes lesoes={form.lpp_lesoes} onChange={v => upd('lpp_lesoes', v)}
+                  T={T} cor={re} inputStyle={inputStyle}/>
                 <span style={lblStyle}>Tratamento:</span>
                 <input type="text" value={form.lpp_tratamento}
                   onChange={e => upd('lpp_tratamento', e.target.value)}
@@ -1267,7 +1379,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               color: '#fff', border: 'none', borderRadius: 12,
               fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit',
               boxShadow: `0 0 18px ${ac}35`,
-            }}>🖨️ Imprimir / Exportar PDF</button>
+            }}>🖨️ Imprimir / Salvar</button>
             <button onClick={onConcluir} style={{
               flex: 1, minWidth: 200, minHeight: 56,
               background: `linear-gradient(135deg,${gr},#1a7a50)`, border: 'none',
