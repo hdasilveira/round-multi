@@ -39,7 +39,8 @@ export const emptyForm = (leito = '') => ({
   step_e: false, step_f: false, step_nao: false,
 
   nut_vo: false, nut_npt: false, nut_sne: false, nut_npo: false,
-  nut_alvo_sim: false, nut_alvo_nao: false, nut_ml: '',
+  nut_alvo_sim: false, nut_alvo_nao: false, nut_alvo: '', nut_alvo_novo: '',
+  nut_trofica: false,
   nut_progredir: false, nut_npo_motivo: '',
 
   dev_cv_sim: false, dev_cv_nao: false, dev_cv_sitio: '', dev_cv_obs: '',
@@ -105,8 +106,9 @@ const SUGESTOES = {
   dev_shilley_obs:   ['Hemodiálise'],
   dev_sne_obs:       ['Ventilação mecânica', 'Impossibilidade de via oral'],
   dev_svd_obs:       ['Controle de diurese', 'Sondagem tecnicamente difícil'],
-  plano:             ['Pausa de sedação', 'Vigiar sinais de infecção', 'Vigiar desconforto',
-                      'Vigiar padrão ventilatório', 'Neuroproteção'],
+  plano:             ['Pausa de sedação', 'Desmame de VM', 'Vigiar sinais de infecção',
+                      'Vigiar desconforto', 'Vigiar padrão ventilatório', 'Neuroproteção',
+                      'Medidas de conforto'],
 };
 
 // Classificação das lesões por pressão (NPUAP/EPUAP).
@@ -227,6 +229,7 @@ const PRINT_CSS = `
   }
   #rmd-print-portal.rmd-preview #rmd-print {
     margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transform: scale(var(--zoom, 1)); transform-origin: top center;
   }
 }
 
@@ -520,9 +523,12 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         <span className="rp-cb"><PCB c={form.nut_npt} /> NPT</span>
         <span className="rp-cb"><PCB c={form.nut_sne} /> SNE</span>
         Alvo:
+        <span className="rp-cb"><PCB c={form.nut_trofica} /> Dieta trófica</span>
+        {' '}Alvo: <UL v={form.nut_alvo} /> mL/h
+        {' '}Atingido:
         <span className="rp-cb"><PCB c={form.nut_alvo_sim} /> Sim</span>
         <span className="rp-cb"><PCB c={form.nut_alvo_nao} /> Não</span>
-        <UL v={form.nut_ml} /> ml/h
+        {form.nut_alvo_nao && <>{' '}Novo alvo: <UL v={form.nut_alvo_novo} /> mL/h</>}
         <span className="rp-cb"><PCB c={form.nut_progredir} /> Progredir</span>
         <span className="rp-cb"><PCB c={form.nut_npo} /> NPO ⇒ Motivo: <UL v={form.nut_npo_motivo} w /></span>
       </div>
@@ -632,6 +638,19 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
  * impressão de qualquer leito continua disponível.
  */
 export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar, onConcluir }) {
+  // Tablet em pé tem cerca de 768px: abaixo disso os controles empilham.
+  const [estreito, setEstreito] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 900 : false
+  );
+  useEffect(() => {
+    const aoRedimensionar = () => setEstreito(window.innerWidth < 900);
+    window.addEventListener('resize', aoRedimensionar);
+    window.addEventListener('orientationchange', aoRedimensionar);
+    return () => {
+      window.removeEventListener('resize', aoRedimensionar);
+      window.removeEventListener('orientationchange', aoRedimensionar);
+    };
+  }, []);
   const T = useContext(ThemeCtxRef);
   const [limparModal, setLimparModal] = useState(false);
 
@@ -647,6 +666,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     return div;
   });
   const [preview, setPreview] = useState(false);
+  const [escala, setEscala] = useState(1);
 
   useEffect(() => {
     document.body.appendChild(portal);
@@ -689,20 +709,42 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     const caixa = document.getElementById('rmd-print');
     const miolo = document.getElementById('rmd-print-inner');
     if (!caixa || !miolo) return;
+
     miolo.style.transform = 'none';
     miolo.style.width = '100%';
+
+    // Três passadas: alargar o miolo reflui o texto e muda a altura, então a
+    // primeira estimativa sempre erra um pouco. NÃO existe piso de redução —
+    // um piso fazia o conteúdo que não coubesse ser cortado pelo overflow, e
+    // era assim que as assinaturas sumiam nos formulários mais preenchidos.
     let k = 1;
-    for (let passada = 0; passada < 2; passada++) {
+    for (let passada = 0; passada < 3; passada++) {
       const util = caixa.clientHeight;
       const real = miolo.scrollHeight;
       if (!util || !real || real <= util + 1) break;
-      k = Math.max(0.6, k * (util / real));
+      k = k * (util / real);
       miolo.style.width = `${100 / k}%`;
       miolo.style.transform = `scale(${k})`;
     }
+    // Margem de meio ponto percentual: arredondamento do navegador não pode
+    // deixar a última linha de assinatura para fora.
+    if (k < 1) {
+      k = k * 0.995;
+      miolo.style.width = `${100 / k}%`;
+      miolo.style.transform = `scale(${k})`;
+    }
+    setEscala(k);
   }, []);
 
   useLayoutEffect(() => { ajustarEscala(); });
+
+  // Pré-visualização em tablet retrato: a folha A4 tem 794px de largura e não
+  // cabe numa tela de 768px. O zoom encaixa sem cortar.
+  useLayoutEffect(() => {
+    if (!portal) return;
+    const largura = Math.min(window.innerWidth - 24, 794);
+    portal.style.setProperty('--zoom', String(Math.min(1, largura / 794)));
+  }, [portal, preview]);
 
   const folha = form;
 
@@ -818,7 +860,18 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
       {portal && ReactDOM.createPortal(
         <>
           <PrintArea form={folha} />
-          {preview && (
+          {preview && (<>
+            {escala < 0.72 && (
+              <div className="rmd-preview-bar" style={{
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2,
+                padding: '10px 16px', textAlign: 'center',
+                background: 'rgba(245,166,35,0.95)', color: '#1a1200',
+                fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+              }}>
+                Folha reduzida a {Math.round(escala * 100)}% para caber em uma página.
+                Considere encurtar o plano terapêutico.
+              </div>
+            )}
             <div className="rmd-preview-bar" style={{
               position: 'fixed', bottom: 0, left: 0, right: 0,
               display: 'flex', gap: 12, justifyContent: 'center',
@@ -836,7 +889,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
                 fontWeight: 700, fontSize: 15, minHeight: 48, cursor: 'pointer', fontFamily: 'inherit',
               }}>🖨️ Imprimir / Salvar</button>
             </div>
-          )}
+          </>)}
         </>,
         portal
       )}
@@ -897,6 +950,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
             background: `linear-gradient(135deg,${gr},#1a7a50)`, border: 'none',
             color: '#fff', padding: '12px 22px', borderRadius: 10,
             fontWeight: 700, fontSize: 15, minHeight: 48, cursor: 'pointer', fontFamily: 'inherit',
+            flex: estreito ? '1 1 100%' : '0 0 auto',
           }}>✓ Concluir</button>
         </div>
 
@@ -1142,17 +1196,32 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('nut_vo', 'VO', or)}
               {CB('nut_npt', 'NPT', or)}
               {CB('nut_sne', 'SNE', or)}
-              <div style={{ width: 2, height: 32, background: T.border, margin: '0 4px' }} />
-              <span style={lblStyle}>Alvo atingido:</span>
-              {CB('nut_alvo_sim', 'Sim', gr)}
-              {CB('nut_alvo_nao', 'Não', re)}
-              <input type="text" value={form.nut_ml}
-                onChange={e => upd('nut_ml', e.target.value)}
+              {CB('nut_trofica', 'Dieta trófica', te)}
+            </div>
+            <div style={rowStyle}>
+              <span style={lblStyle}>Alvo:</span>
+              <input type="text" value={form.nut_alvo}
+                onChange={e => upd('nut_alvo', e.target.value)}
                 placeholder="mL/h"
-                style={{ ...inputStyle(100) }}
+                style={{ ...inputStyle(110) }}
                 onFocus={e => { e.target.style.borderColor = ac; }}
                 onBlur={e  => { e.target.style.borderColor = T.border; }}
               />
+              <div style={{ width: 2, height: 32, background: T.border, margin: '0 4px' }} />
+              <span style={lblStyle}>Alvo atingido?</span>
+              {CB('nut_alvo_sim', 'Sim', gr)}
+              {CB('nut_alvo_nao', 'Não', re)}
+              {/* Alvo não atingido: define-se o novo alvo em vez de seguir adiante. */}
+              {form.nut_alvo_nao && <>
+                <span style={lblStyle}>⇒ Novo alvo:</span>
+                <input type="text" value={form.nut_alvo_novo}
+                  onChange={e => upd('nut_alvo_novo', e.target.value)}
+                  placeholder="mL/h"
+                  style={{ ...inputStyle(110) }}
+                  onFocus={e => { e.target.style.borderColor = re; }}
+                  onBlur={e  => { e.target.style.borderColor = T.border; }}
+                />
+              </>}
               {CB('nut_progredir', 'Progredir', te)}
             </div>
             <div style={rowStyle}>
@@ -1352,7 +1421,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
           </div>
 
           {/* ASSINATURAS */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: estreito ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 10 }}>
             {['Médico','Enfermeiro','Fisioterapeuta'].map(r => (
               <div key={r} style={{
                 textAlign: 'center', padding: '14px 10px',
