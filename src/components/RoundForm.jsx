@@ -39,7 +39,7 @@ export const emptyForm = (leito = '') => ({
   step_e: false, step_f: false, step_nao: false,
 
   nut_vo: false, nut_npt: false, nut_sne: false, nut_npo: false,
-  nut_alvo_sim: false, nut_alvo_nao: false, nut_alvo: '', nut_alvo_novo: '',
+  nut_alvo_sim: false, nut_alvo_nao: false, nut_alvo: '', nut_taxa_atual: '',
   nut_trofica: false,
   nut_progredir: false, nut_npo_motivo: '',
 
@@ -205,7 +205,6 @@ const PRINT_CSS = `
   break-inside: avoid; page-break-inside: avoid;
 }
 #rmd-print .rp-sign-line { border-top: 1px solid #000; padding-top: 2pt; margin-top: 18pt; font-size: 8pt; text-align: center; }
-#rmd-print .rp-footer { flex-shrink: 0; margin-top: 7pt; padding-top: 4pt; border-top: 1px solid #ccc; font-size: 7.5pt; color: #555; text-align: center; }
 #rmd-print .rp-steptxt { font-size: 7.6pt; color: #555; margin-top: 3pt; line-height: 1.5; }
 #rmd-print .rp-id-row { display: flex; gap: 20pt; padding: 3.5pt 0; border-bottom: 1px solid #ddd; margin-bottom: 2pt; font-size: 9.4pt; flex-shrink: 0; }
 #rmd-print .rp-title { font-weight: bold; font-size: 9.4pt; margin: 5pt 0 1pt; display: block; }
@@ -263,7 +262,7 @@ const PRINT_CSS = `
 
   /* O documento é de uma folha só: nada pode gerar página seguinte. */
   #rmd-print, #rmd-print * { break-after: avoid; page-break-after: avoid; }
-  #rmd-print .rp-footer { break-after: auto; page-break-after: auto; }
+  #rmd-print .rp-sign-row { break-after: auto; page-break-after: auto; }
 }
 `;
 
@@ -528,7 +527,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         {' '}Atingido:
         <span className="rp-cb"><PCB c={form.nut_alvo_sim} /> Sim</span>
         <span className="rp-cb"><PCB c={form.nut_alvo_nao} /> Não</span>
-        {form.nut_alvo_nao && <>{' '}Novo alvo: <UL v={form.nut_alvo_novo} /> mL/h</>}
+        {form.nut_alvo_nao && <>{' '}Taxa atual: <UL v={form.nut_taxa_atual} /> mL/h</>}
         <span className="rp-cb"><PCB c={form.nut_progredir} /> Progredir</span>
         <span className="rp-cb"><PCB c={form.nut_npo} /> NPO ⇒ Motivo: <UL v={form.nut_npo_motivo} w /></span>
       </div>
@@ -622,10 +621,6 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         ))}
       </div>
 
-      {/* Rodapé */}
-      <div className="rp-footer">
-        UTI · Workstation · Round Multidisciplinar · {form.data}{form.leito ? ` · Leito: ${form.leito}` : ''}
-      </div>
       </div>
     </div>
   );
@@ -1211,11 +1206,11 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               <span style={lblStyle}>Alvo atingido?</span>
               {CB('nut_alvo_sim', 'Sim', gr)}
               {CB('nut_alvo_nao', 'Não', re)}
-              {/* Alvo não atingido: define-se o novo alvo em vez de seguir adiante. */}
+              {/* Alvo não atingido: registra-se em que taxa a dieta está correndo. */}
               {form.nut_alvo_nao && <>
-                <span style={lblStyle}>⇒ Novo alvo:</span>
-                <input type="text" value={form.nut_alvo_novo}
-                  onChange={e => upd('nut_alvo_novo', e.target.value)}
+                <span style={lblStyle}>⇒ Taxa atual:</span>
+                <input type="text" value={form.nut_taxa_atual}
+                  onChange={e => upd('nut_taxa_atual', e.target.value)}
                   placeholder="mL/h"
                   style={{ ...inputStyle(110) }}
                   onFocus={e => { e.target.style.borderColor = re; }}
