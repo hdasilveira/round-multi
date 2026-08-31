@@ -1,0 +1,32 @@
+{
+  "name": "imulti",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iMulti — ferramenta de round multidisciplinar em terapia intensiva",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 safari version"
+    ]
+  }
+}
