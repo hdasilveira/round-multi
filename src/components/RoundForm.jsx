@@ -712,19 +712,28 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     // primeira estimativa sempre erra um pouco. NÃO existe piso de redução —
     // um piso fazia o conteúdo que não coubesse ser cortado pelo overflow, e
     // era assim que as assinaturas sumiam nos formulários mais preenchidos.
+    // clientHeight INCLUI o padding. Na tela a folha tem 297mm de altura com
+    // 11mm de padding em cima e embaixo, então clientHeight devolvia 297mm
+    // enquanto a área realmente utilizável é de 275mm — os mesmos 275mm da
+    // caixa na impressão, onde não há padding. A escala saía calculada para
+    // uma folha 22mm maior do que a real, e era essa diferença que cortava as
+    // assinaturas no papel. Descontar o padding iguala as duas medidas.
+    const estilo = window.getComputedStyle(caixa);
+    const padding = (parseFloat(estilo.paddingTop) || 0) + (parseFloat(estilo.paddingBottom) || 0);
+
     let k = 1;
     for (let passada = 0; passada < 3; passada++) {
-      const util = caixa.clientHeight;
+      const util = caixa.clientHeight - padding;
       const real = miolo.scrollHeight;
       if (!util || !real || real <= util + 1) break;
       k = k * (util / real);
       miolo.style.width = `${100 / k}%`;
       miolo.style.transform = `scale(${k})`;
     }
-    // Margem de meio ponto percentual: arredondamento do navegador não pode
-    // deixar a última linha de assinatura para fora.
+    // Margem de 1,5%: o motor de impressão arredonda diferente do da tela, e
+    // a última linha a sair seria justamente a das assinaturas.
     if (k < 1) {
-      k = k * 0.995;
+      k = k * 0.985;
       miolo.style.width = `${100 / k}%`;
       miolo.style.transform = `scale(${k})`;
     }
