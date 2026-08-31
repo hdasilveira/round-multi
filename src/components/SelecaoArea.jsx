@@ -5,7 +5,7 @@
 import React from 'react';
 import { AREAS, leitosDaArea, contagem } from '../utils/sessao';
 
-export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, onDescartar, dark, onToggleTheme }) {
+export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, onDescartar, onTutorial, dark, onToggleTheme }) {
   const cont = contagem(sessaoAberta);
 
   return (
@@ -25,6 +25,11 @@ export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, on
           <div style={{ fontSize: 12, color: T.textMuted }}>Round multidisciplinar</div>
         </div>
         <div style={{ flex: 1 }} />
+        <button onClick={onTutorial} style={{
+          background: 'none', border: `1px solid #4ecdc450`, color: '#4ecdc4',
+          padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>❔ Tutorial</button>
         <button onClick={onToggleTheme} style={{
           background: T.surface2, border: `1px solid ${T.border}`, color: T.textMuted,
           padding: '8px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
@@ -91,6 +96,13 @@ export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, on
               </button>
             ))}
           </div>
+
+          <button onClick={onTutorial} style={{
+            width: '100%', marginTop: 18, minHeight: 56,
+            background: 'none', border: `1.5px dashed ${T.border}`, color: T.textMuted,
+            borderRadius: 14, fontSize: 14.5, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>❔ Primeira vez aqui? Veja como usar o iMulti</button>
 
           <div style={{ marginTop: 28, fontSize: 11, color: T.textDim, lineHeight: 1.7 }}>
             Desenvolvido por <strong style={{ color: T.textMuted }}>Henrique Ceron da Silveira</strong>,
