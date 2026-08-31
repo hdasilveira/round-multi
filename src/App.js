@@ -9,6 +9,7 @@ import React, { useState, useEffect, createContext } from 'react';
 import { DARK, LIGHT, makeCSS } from './components/ui';
 import SelecaoArea from './components/SelecaoArea';
 import PainelLeitos from './components/PainelLeitos';
+import Tutorial, { jaViuTutorial } from './components/Tutorial';
 import RoundForm, { emptyForm } from './components/RoundForm';
 import {
   novaSessao, carregarSessao, salvarSessao, apagarSessao, hoje,
@@ -21,6 +22,8 @@ export default function App() {
   const [sessao, setSessao] = useState(() => carregarSessao());
   const [tela, setTela] = useState(() => (carregarSessao() ? 'painel' : 'area'));
   const [leitoAberto, setLeitoAberto] = useState(null);
+  // Abre sozinho na primeira vez que este aparelho usa o aplicativo.
+  const [tutorial, setTutorial] = useState(() => !jaViuTutorial());
 
   const T = dark ? DARK : LIGHT;
 
@@ -105,6 +108,7 @@ export default function App() {
           onEscolher={escolherArea}
           onRetomar={() => setTela('painel')}
           onDescartar={descartar}
+          onTutorial={() => setTutorial(true)}
         />
       ) : tela === 'painel' ? (
         <PainelLeitos
@@ -125,6 +129,8 @@ export default function App() {
           onConcluir={concluirLeito}
         />
       )}
+
+      {tutorial && <Tutorial T={T} onFechar={() => setTutorial(false)} />}
     </ThemeCtx.Provider>
   );
 }
