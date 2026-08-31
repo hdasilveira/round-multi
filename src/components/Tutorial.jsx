@@ -62,13 +62,16 @@ const PASSOS = [
   },
   {
     icone: '🖨️',
-    titulo: '4. Imprima a folha',
-    texto: 'Use "Pré-visualizar" para conferir e "Imprimir / PDF" para gerar o documento. A folha sempre cabe em uma página só.',
+    titulo: '4. Imprima ou salve a folha',
+    texto: 'Use "Pré-visualizar" para conferir e "Imprimir / Salvar" para gerar o documento. A folha sempre cabe em uma página só.',
     itens: [
-      'No tablet, a opção "Salvar como PDF" aparece na própria caixa de impressão.',
+      'Confira antes se o tablet está conectado à impressora da unidade.',
+      'Ao concluir um leito, toque em "Imprimir / Salvar".',
+      'Ao salvar como PDF, o nome do arquivo já vem preenchido com o número do leito.',
       'A folha traz espaço para etiqueta e assinatura de médico, enfermeiro e fisioterapeuta.',
       'Um leito concluído pode ser reaberto para revisar ou reimprimir.',
     ],
+    nota: 'Se o seu navegador não trouxer o nome preenchido, digite só o número do leito — assim os arquivos ficam em ordem na hora de imprimir todos de uma vez.',
   },
   {
     icone: '💾',
