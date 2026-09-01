@@ -167,7 +167,13 @@ const PRINT_CSS = `
 #rmd-print {
   font-family: Arial, Helvetica, sans-serif;
   font-size: calc(9.2pt * var(--s, 1)); line-height: 1.4; color: #000; background: #fff;
-  height: 275mm;            /* A4 (297mm) menos 11mm de margem em cima e embaixo */
+  /* O Chrome respeita @page e nos dá 275mm (297 menos 11mm de margem em cima
+     e embaixo). O Safari do iPad IGNORA @page e aplica as margens do próprio
+     iOS, maiores que as nossas — a folha ficava alguns milímetros mais alta
+     que a área imprimível e, como o bloco de assinaturas não se divide, ele
+     saltava inteiro para a página 2. A altura passa a ser ajustada por
+     navegador. */
+  height: var(--altura-util, 275mm);
   overflow: hidden;
 }
 /* No papel a folha não é recortada: se algo não couber, é melhor transbordar
@@ -241,7 +247,10 @@ const PRINT_CSS = `
     width: 210mm; visibility: hidden; pointer-events: none;
   }
   #rmd-print-portal #rmd-print {
-    width: 210mm; height: 297mm;
+    width: 210mm;
+    /* Altura útil mais o padding: assim a pré-visualização mede exatamente a
+       mesma área que a impressão vai ter. */
+    height: calc(var(--altura-util, 275mm) + 22mm);
     padding: 11mm 13mm; box-sizing: border-box;
   }
   #rmd-print-portal.rmd-preview {
@@ -280,7 +289,7 @@ const PRINT_CSS = `
   }
   #rmd-print, #rmd-print-portal.rmd-preview #rmd-print {
     display: block !important;
-    width: auto !important; height: 275mm !important;
+    width: auto !important; height: var(--altura-util, 275mm) !important;
     margin: 0 !important; padding: 0 !important;
     box-shadow: none !important;
     /* O zoom da pré-visualização serve para caber na tela do tablet; no papel
@@ -290,9 +299,11 @@ const PRINT_CSS = `
   #rmd-print-inner { transform: none !important; width: 100% !important; zoom: normal !important; }
   .rmd-preview-bar { display: none !important; }
 
-  /* O documento é de uma folha só: nada pode gerar página seguinte. */
-  #rmd-print, #rmd-print * { break-after: avoid; page-break-after: avoid; }
-  #rmd-print .rp-sign-row { break-after: auto; page-break-after: auto; }
+  /* Blocos que não devem ser partidos ao meio. A folha inteira caber numa
+     página é responsabilidade do dimensionamento, não de travas de quebra. */
+  #rmd-print .rp-sign-row,
+  #rmd-print .rp-dev-table,
+  #rmd-print .rp-plano { break-inside: avoid; page-break-inside: avoid; }
 }
 `;
 
@@ -753,6 +764,17 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
       caixa.style.setProperty('--s', String(k));
     }
     setEscala(k);
+  }, []);
+
+  // Altura útil da folha, definida uma vez conforme o navegador.
+  useLayoutEffect(() => {
+    const ua = navigator.userAgent || '';
+    const iOS = /iPad|iPhone|iPod/.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+    // Margem folgada onde não controlamos as margens da página.
+    const altura = (iOS || safari) ? '256mm' : '275mm';
+    document.documentElement.style.setProperty('--altura-util', altura);
   }, []);
 
   useLayoutEffect(() => { ajustarEscala(); });
