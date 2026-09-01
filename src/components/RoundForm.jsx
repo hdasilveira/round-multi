@@ -112,6 +112,25 @@ const SUGESTOES = {
 };
 
 // Classificação das lesões por pressão (NPUAP/EPUAP).
+// Descrição de cada estágio do STEP. Na folha sai só o estágio marcado com a
+// sua descrição, em vez da tabela de sete células: a célula preenchida de
+// preto era o que o Safari repetia página abaixo ao imprimir.
+const STEP_DESCRICAO = {
+  step_a: 'A — mobilização passiva/ativa no leito',
+  step_b: 'B — exercícios no leito, transferência passiva, sedestação à beira do leito',
+  step_c: 'C — exercícios à beira do leito',
+  step_d: 'D — treino de ortostase, poltrona assistida/ativa, marcha estacionária',
+  step_e: 'E — treino de marcha com equipe (avaliar ida ao banheiro)',
+  step_f: 'F — treino de marcha com dispositivo',
+  step_nao: 'Não realizada',
+};
+
+/** Estágio marcado, com a descrição. Vazio se nada foi assinalado. */
+const resumoStep = (form) => {
+  const chave = Object.keys(STEP_DESCRICAO).find(k => form[k]);
+  return chave ? STEP_DESCRICAO[chave] : '';
+};
+
 const CLASSIFICACOES_LPP = [
   'Estágio 1', 'Estágio 2', 'Estágio 3', 'Estágio 4',
   'Lesão tissular profunda', 'LPRDM', 'Não classificável',
@@ -185,16 +204,15 @@ const PRINT_CSS = `
   display: inline-flex; align-items: center; justify-content: center;
   font-size: calc(7pt * var(--s, 1)); font-weight: bold; flex-shrink: 0; vertical-align: middle;
 }
-#rmd-print .rp-box.on { background: #000; color: #fff; }
+/* Sem preenchimento sólido em lugar nenhum da folha: fundos pretos são
+   o que o Safari repete ao longo da página na impressão. */
+#rmd-print .rp-box.on { background: #fff; color: #000; }
 #rmd-print .rp-ul { display: inline-block; min-width: calc(68pt * var(--s, 1)); border-bottom: 1px solid #000; padding: 0 calc(2pt * var(--s, 1)); vertical-align: baseline; }
 #rmd-print .rp-ul-w { min-width: calc(130pt * var(--s, 1)); }
 #rmd-print .rp-ul-xl { min-width: calc(200pt * var(--s, 1)); }
-#rmd-print .rp-step-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: calc(3pt * var(--s, 1)); margin: calc(3pt * var(--s, 1)) 0; }
-#rmd-print .rp-step-cell { border: 1px solid #000; padding: calc(2pt * var(--s, 1)); text-align: center; font-weight: bold; font-size: calc(8.8pt * var(--s, 1)); }
-#rmd-print .rp-step-cell.on { background: #000; color: #fff; }
 #rmd-print .rp-dev-table { width: 100%; border-collapse: collapse; margin: calc(3pt * var(--s, 1)) 0; font-size: calc(8.4pt * var(--s, 1)); break-inside: avoid; }
 #rmd-print .rp-dev-table td, #rmd-print .rp-dev-table th { border: 1px solid #aaa; padding: calc(2pt * var(--s, 1)) calc(5pt * var(--s, 1)); }
-#rmd-print .rp-dev-table th { background: #f0f0f0; font-weight: bold; }
+#rmd-print .rp-dev-table th { background: #fff; font-weight: bold; }
 #rmd-print .rp-plano-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 #rmd-print .rp-plano {
   border: 1px solid #000; flex: 1; min-height: calc(62pt * var(--s, 1));
@@ -210,7 +228,6 @@ const PRINT_CSS = `
   break-inside: avoid; page-break-inside: avoid;
 }
 #rmd-print .rp-sign-line { border-top: 1px solid #000; padding-top: calc(2pt * var(--s, 1)); margin-top: calc(18pt * var(--s, 1)); font-size: calc(8pt * var(--s, 1)); text-align: center; }
-#rmd-print .rp-steptxt { font-size: calc(7.6pt * var(--s, 1)); color: #555; margin-top: calc(3pt * var(--s, 1)); line-height: 1.5; }
 #rmd-print .rp-id-row { display: flex; gap: calc(20pt * var(--s, 1)); padding: calc(3.5pt * var(--s, 1)) 0; border-bottom: 1px solid #ddd; margin-bottom: calc(2pt * var(--s, 1)); font-size: calc(9.4pt * var(--s, 1)); flex-shrink: 0; }
 #rmd-print .rp-title { font-weight: bold; font-size: calc(9.4pt * var(--s, 1)); margin: calc(5pt * var(--s, 1)) 0 calc(1pt * var(--s, 1)); display: block; }
 
@@ -244,7 +261,6 @@ const PRINT_CSS = `
 
 @media print {
   @page { size: A4 portrait; margin: 11mm 13mm; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
   /* Oculta a interface, MAS preserva o container do portal.
      A regra antiga era "body > *", que escondia o próprio portal — e como
@@ -425,7 +441,7 @@ function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
 
 // Caixa de marcação e linha pontilhada da folha. Declaradas fora do render:
 // componentes criados dentro dele são recriados a cada pintura.
-const PCB = ({ c }) => <span className={`rp-box${c ? ' on' : ''}`}>{c ? '✓' : ''}</span>;
+const PCB = ({ c }) => <span className={`rp-box${c ? ' on' : ''}`}>{c ? '✕' : ''}</span>;
 const UL = ({ v, w, xl }) => (
   <span className={`rp-ul${w ? ' rp-ul-w' : ''}${xl ? ' rp-ul-xl' : ''}`}>{v}</span>
 );
@@ -518,15 +534,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
       {/* 7 */}
       <div className="rp-row" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
         <span className="rp-bold">7. Protocolo de mobilização STEP:</span>
-        <div className="rp-step-grid" style={{ width: '100%', marginTop: '4pt' }}>
-          {[['step_a','A'],['step_b','B'],['step_c','C'],['step_d','D'],
-            ['step_e','E'],['step_f','F'],['step_nao','Não']].map(([k,l]) => (
-            <div key={k} className={`rp-step-cell${form[k] ? ' on' : ''}`}>{l}</div>
-          ))}
-        </div>
-        <div className="rp-steptxt">
-          Step A: mobilização passiva/ativa leito · Step B: exercícios no leito, transferência passiva, sedestação à beira do leito · Step C: exercícios beira-leito · Step D: treino ortostase, poltrona assistida/ativa, marcha estacionária · Step E: treino marcha com equipe (avaliar ida ao banheiro) · Step F: treino marcha com dispositivo
-        </div>
+        <UL v={resumoStep(form)} xl />
       </div>
 
       {/* 8 */}
