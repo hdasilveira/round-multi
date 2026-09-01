@@ -212,8 +212,10 @@ const PRINT_CSS = `
 @media screen {
   /* Fora da pré-visualização o portal sai de vista, mas NÃO com display:none:
      um elemento sem layout tem altura zero e não poderia ser medido. */
+  /* position absolute em vez de fixed: elementos fixos sao fonte conhecida de
+     problema na impressao do Safari, que pode repeti-los ou reposiciona-los. */
   #rmd-print-portal {
-    position: fixed; top: 0; left: -20000px;
+    position: absolute; top: 0; left: -20000px;
     width: 210mm; visibility: hidden; pointer-events: none;
   }
   #rmd-print-portal #rmd-print {
@@ -257,8 +259,14 @@ const PRINT_CSS = `
     width: auto !important; height: 275mm !important;
     margin: 0 !important; padding: 0 !important;
     box-shadow: none !important; overflow: hidden !important;
+    /* O zoom da pré-visualização serve para caber na tela do tablet; no papel
+       a folha já tem o tamanho certo e ele precisa ser anulado. */
+    transform: none !important;
   }
   .rmd-preview-bar { display: none !important; }
+
+  /* A redução do miolo é a única escala que sobrevive à impressão. */
+  #rmd-print-inner { transform-origin: top left !important; }
 
   /* O documento é de uma folha só: nada pode gerar página seguinte. */
   #rmd-print, #rmd-print * { break-after: avoid; page-break-after: avoid; }
@@ -705,8 +713,24 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     const miolo = document.getElementById('rmd-print-inner');
     if (!caixa || !miolo) return;
 
-    miolo.style.transform = 'none';
-    miolo.style.width = '100%';
+    // O Safari do iPad trata `transform: scale()` de forma inconsistente na
+    // impressão: a escala vale na tela, mas o motor de impressão parte do
+    // layout NÃO transformado, e a folha sai desconfigurada. `zoom` altera o
+    // layout de verdade, então a medida vale igual nos dois. O transform fica
+    // de reserva para navegadores sem suporte a zoom.
+    const usaZoom = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('zoom', '0.9');
+    const aplicar = (k) => {
+      miolo.style.width = k < 1 ? `${100 / k}%` : '100%';
+      if (usaZoom) {
+        miolo.style.zoom = k < 1 ? String(k) : '';
+        miolo.style.transform = 'none';
+      } else {
+        miolo.style.zoom = '';
+        miolo.style.transform = k < 1 ? `scale(${k})` : 'none';
+      }
+    };
+
+    aplicar(1);
 
     // Três passadas: alargar o miolo reflui o texto e muda a altura, então a
     // primeira estimativa sempre erra um pouco. NÃO existe piso de redução —
@@ -727,15 +751,13 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
       const real = miolo.scrollHeight;
       if (!util || !real || real <= util + 1) break;
       k = k * (util / real);
-      miolo.style.width = `${100 / k}%`;
-      miolo.style.transform = `scale(${k})`;
+      aplicar(k);
     }
     // Margem de 1,5%: o motor de impressão arredonda diferente do da tela, e
     // a última linha a sair seria justamente a das assinaturas.
     if (k < 1) {
       k = k * 0.985;
-      miolo.style.width = `${100 / k}%`;
-      miolo.style.transform = `scale(${k})`;
+      aplicar(k);
     }
     setEscala(k);
   }, []);
