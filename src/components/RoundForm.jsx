@@ -157,7 +157,12 @@ const RASS_OPTIONS = [
 
 // ─── CSS DE IMPRESSÃO ─────────────────────────────────────────────────────────
 // Injetado em <head>. A área de impressão vive em document.body fora do #root.
-const PRINT_CSS = `
+/**
+ * Estilos da FOLHA. Ficam separados dos estilos de tela porque são reutilizados
+ * no documento isolado que vai para a impressora — lá não existe portal, nem
+ * pré-visualização, nem interface do app.
+ */
+const PRINT_CSS_FOLHA = `
 /* Estilos da folha. Ficam FORA do @media print para que a pré-visualização
    em tela use exatamente a mesma renderização que vai para o papel. */
 /* #rmd-print é a CAIXA DA PÁGINA: altura definida e sem transbordo.
@@ -176,16 +181,26 @@ const PRINT_CSS = `
   height: var(--altura-util, 275mm);
   overflow: hidden;
 }
-/* No papel a folha não é recortada: se algo não couber, é melhor transbordar
-   de forma visível do que sumir em silêncio — foi assim que as assinaturas
-   desapareceram antes. Com o refluxo por --s isso não deve acontecer. */
-@media print {
-  #rmd-print { overflow: visible; }
-}
+/* A folha é sempre uma página. O refluxo por --s garante que o conteúdo
+   caiba; o recorte é a última linha de defesa contra uma página extra em
+   branco, que era o que aparecia quando algo transbordava alguns milímetros. */
 #rmd-print-inner {
   display: flex; flex-direction: column;
   min-height: 100%;
 }
+
+/* MODO SIMPLES — usado no WebKit (todo navegador do iPad, inclusive o Chrome,
+   porque a Apple obriga o uso do motor do Safari).
+   O WebKit pagina mal um container de altura fixa com overflow oculto e
+   layout flexível: era daí que vinham a página extra, o conteúdo deslocado e
+   o retângulo de fundo. Aqui a folha vira fluxo de documento comum — sem
+   altura travada, sem recorte, sem flex — que é o que ele imprime bem. O
+   encaixe em uma página passa a depender só do refluxo por --s. */
+#rmd-print.simples { height: auto; overflow: visible; }
+#rmd-print.simples #rmd-print-inner { display: block; min-height: 0; }
+#rmd-print.simples .rp-plano-wrap { display: block; }
+#rmd-print.simples .rp-plano { height: calc(58pt * var(--s, 1)); min-height: 0; }
+#rmd-print.simples .rp-sign-row { margin-top: calc(20pt * var(--s, 1)); }
 #rmd-print .rp-header {
   display: flex; justify-content: space-between; align-items: flex-start;
   gap: calc(16pt * var(--s, 1));
@@ -237,7 +252,10 @@ const PRINT_CSS = `
 #rmd-print .rp-id-row { display: flex; gap: calc(20pt * var(--s, 1)); padding: calc(3.5pt * var(--s, 1)) 0; border-bottom: 1px solid #ddd; margin-bottom: calc(2pt * var(--s, 1)); font-size: calc(9.4pt * var(--s, 1)); flex-shrink: 0; }
 #rmd-print .rp-title { font-weight: bold; font-size: calc(9.4pt * var(--s, 1)); margin: calc(5pt * var(--s, 1)) 0 calc(1pt * var(--s, 1)); display: block; }
 
-@media screen {
+`;
+
+/** Estilos de tela: posicionamento do portal e pré-visualização. */
+const PRINT_CSS = PRINT_CSS_FOLHA + `@media screen {
   /* Fora da pré-visualização o portal sai de vista, mas NÃO com display:none:
      um elemento sem layout tem altura zero e não poderia ser medido. */
   /* position absolute em vez de fixed: elementos fixos sao fonte conhecida de
@@ -277,14 +295,27 @@ const PRINT_CSS = `
      estivesse marcada como display:block. */
   body > *:not(#rmd-print-portal) { display: none !important; }
 
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+
+  /* O portal precisa voltar a ser um bloco comum. Faltavam altura, largura e
+     visibilidade: em modo de pré-visualização ele é uma camada fixa de tela
+     inteira com fundo escuro, e era esse fundo que saía impresso como um
+     retângulo azul ocupando a página. */
   #rmd-print-portal,
   #rmd-print-portal.rmd-preview {
     display: block !important;
     position: static !important;
     inset: auto !important;
-    background: #fff !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
     padding: 0 !important;
+    margin: 0 !important;
     overflow: visible !important;
+    visibility: visible !important;
     z-index: auto !important;
   }
   #rmd-print, #rmd-print-portal.rmd-preview #rmd-print {
@@ -751,13 +782,22 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     const estilo = window.getComputedStyle(caixa);
     const padding = (parseFloat(estilo.paddingTop) || 0) + (parseFloat(estilo.paddingBottom) || 0);
 
+    // No modo simples a caixa não tem altura fixa para servir de referência,
+    // então o alvo vem da própria variável, convertida de milímetros.
+    const mmEmPx = (mm) => (mm * 96) / 25.4;
+    const alturaDeclarada = getComputedStyle(document.documentElement)
+      .getPropertyValue('--altura-util').trim();
+    const alvoFixo = mmEmPx(parseFloat(alturaDeclarada) || 275);
+
     let k = 1;
     caixa.style.setProperty('--s', '1');
 
     // Quatro passadas: mudar o tamanho da fonte reflui o texto e altera a
     // altura, então cada estimativa refina a anterior.
     for (let passada = 0; passada < 4; passada++) {
-      const util = caixa.clientHeight - padding;
+      const util = caixa.classList.contains('simples')
+        ? alvoFixo
+        : caixa.clientHeight - padding;
       const real = miolo.scrollHeight;
       if (!util || !real || real <= util - 2) break;
       k = k * (util / real) * 0.995;
@@ -766,16 +806,23 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
     setEscala(k);
   }, []);
 
-  // Altura útil da folha, definida uma vez conforme o navegador.
-  useLayoutEffect(() => {
+  // No iOS todo navegador roda sobre o WebKit, então a detecção é por motor,
+  // não por marca: Chrome e Firefox no iPad têm o mesmo comportamento do Safari.
+  const [webkit] = useState(() => {
     const ua = navigator.userAgent || '';
     const iOS = /iPad|iPhone|iPod/.test(ua)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
-    // Margem folgada onde não controlamos as margens da página.
-    const altura = (iOS || safari) ? '256mm' : '275mm';
-    document.documentElement.style.setProperty('--altura-util', altura);
-  }, []);
+    const safariDesktop = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+    return iOS || safariDesktop;
+  });
+
+  useLayoutEffect(() => {
+    // Onde não controlamos as margens da página, a folha é dimensionada com
+    // folga para caber mesmo com as margens que o sistema impuser.
+    document.documentElement.style.setProperty('--altura-util', webkit ? '250mm' : '275mm');
+    const caixa = document.getElementById('rmd-print');
+    if (caixa) caixa.classList.toggle('simples', webkit);
+  }, [webkit]);
 
   useLayoutEffect(() => { ajustarEscala(); });
 
@@ -789,24 +836,103 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
 
   const folha = form;
 
+  /**
+   * Deixa a folha pronta para o papel, independentemente de como a impressão
+   * foi disparada: pelo botão do app ou pelo menu do navegador (no iPad, o
+   * compartilhamento do Safari). Sem isto, imprimir com a pré-visualização
+   * aberta levava para o papel a camada escura de fundo dela.
+   */
+  const prepararFolha = useCallback(() => {
+    if (portal) {
+      portal.classList.remove('rmd-preview');
+      portal.style.removeProperty('--zoom');
+    }
+    ajustarEscala();
+  }, [portal, ajustarEscala]);
+
+  useEffect(() => {
+    const consulta = window.matchMedia ? window.matchMedia('print') : null;
+    const aoEntrarEmImpressao = (e) => { if (e.matches) prepararFolha(); };
+    window.addEventListener('beforeprint', prepararFolha);
+    if (consulta?.addEventListener) consulta.addEventListener('change', aoEntrarEmImpressao);
+    else if (consulta?.addListener) consulta.addListener(aoEntrarEmImpressao);
+    return () => {
+      window.removeEventListener('beforeprint', prepararFolha);
+      if (consulta?.removeEventListener) consulta.removeEventListener('change', aoEntrarEmImpressao);
+      else if (consulta?.removeListener) consulta.removeListener(aoEntrarEmImpressao);
+    };
+  }, [prepararFolha]);
+
+  /**
+   * Impressão em documento isolado.
+   *
+   * Antes o app inteiro era escondido por CSS e só a folha ficava visível.
+   * No WebKit (todo navegador do iPad) isso não funcionava: o fundo escuro da
+   * interface continuava sendo pintado, virava um bloco azul abaixo da folha
+   * e empurrava conteúdo para uma segunda página.
+   *
+   * Agora a folha é copiada para um iframe com documento próprio, contendo
+   * apenas ela e a sua folha de estilo. Não existe app dentro dele — não há
+   * o que vazar, esconder ou empurrar. É a mesma técnica que sistemas de
+   * prontuário usam para gerar impressos previsíveis.
+   */
   const imprimir = () => {
     setPreview(false);
-    // Navegadores usam o título do documento como nome padrão ao "Salvar como
-    // PDF". Trocá-lo antes de imprimir faz o arquivo já nascer como "11.pdf",
-    // e o título volta ao normal assim que a caixa de impressão fecha.
-    const tituloOriginal = document.title;
-    document.title = leito ? String(leito) : 'round';
-    const restaurar = () => {
-      document.title = tituloOriginal;
-      window.removeEventListener('afterprint', restaurar);
-    };
-    window.addEventListener('afterprint', restaurar);
-    setTimeout(restaurar, 60000); // rede de segurança: nem todo navegador dispara afterprint
-    // Espera o React pintar a folha no portal, ajusta a escala e só então
-    // abre a caixa de impressão — senão o navegador mediria a folha antiga.
+
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      ajustarEscala();
-      window.print();
+      prepararFolha();
+
+      const folhaEl = document.getElementById('rmd-print');
+      if (!folhaEl) return;
+
+      const escala = folhaEl.style.getPropertyValue('--s') || '1';
+      const alturaUtil = getComputedStyle(document.documentElement)
+        .getPropertyValue('--altura-util').trim() || '275mm';
+
+      const anterior = document.getElementById('rmd-print-frame');
+      if (anterior) anterior.remove();
+
+      const quadro = document.createElement('iframe');
+      quadro.id = 'rmd-print-frame';
+      quadro.setAttribute('aria-hidden', 'true');
+      // Fora de vista, mas com dimensões reais: um iframe de tamanho zero não
+      // chega a diagramar o conteúdo e imprimiria em branco.
+      quadro.style.cssText =
+        'position:absolute;left:-20000px;top:0;width:210mm;height:297mm;border:0;';
+      document.body.appendChild(quadro);
+
+      const doc = quadro.contentWindow.document;
+      doc.open();
+      doc.write(
+        '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+        // O título vira o nome sugerido do arquivo ao salvar como PDF.
+        '<title>' + (leito ? String(leito) : 'round') + '</title>' +
+        '<style>' +
+        ':root{--altura-util:' + alturaUtil + ';}' +
+        'html,body{margin:0;padding:0;background:#fff;}' +
+        '@page{size:A4 portrait;margin:11mm 13mm;}' +
+        PRINT_CSS_FOLHA +
+        '</style></head><body>' +
+        folhaEl.outerHTML +
+        '</body></html>'
+      );
+      doc.close();
+
+      // Garante a escala calculada, que vive numa propriedade inline.
+      const copia = doc.getElementById('rmd-print');
+      if (copia) copia.style.setProperty('--s', escala);
+
+      const disparar = () => {
+        quadro.contentWindow.focus();
+        quadro.contentWindow.print();
+        // O iframe só sai depois da caixa de impressão; removê-lo antes
+        // cancelaria o trabalho em alguns navegadores.
+        setTimeout(() => { try { quadro.remove(); } catch (_) { /* já removido */ } }, 60000);
+      };
+
+      // Espera o documento do iframe diagramar antes de mandar imprimir.
+      if (doc.readyState === 'complete') requestAnimationFrame(disparar);
+      else quadro.onload = () => requestAnimationFrame(disparar);
     }));
   };
 
