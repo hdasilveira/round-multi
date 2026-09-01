@@ -147,67 +147,72 @@ const PRINT_CSS = `
    numa folha só, sem cortar nada e sem eu adivinhar tamanhos de fonte. */
 #rmd-print {
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 9.2pt; line-height: 1.4; color: #000; background: #fff;
+  font-size: calc(9.2pt * var(--s, 1)); line-height: 1.4; color: #000; background: #fff;
   height: 275mm;            /* A4 (297mm) menos 11mm de margem em cima e embaixo */
   overflow: hidden;
+}
+/* No papel a folha não é recortada: se algo não couber, é melhor transbordar
+   de forma visível do que sumir em silêncio — foi assim que as assinaturas
+   desapareceram antes. Com o refluxo por --s isso não deve acontecer. */
+@media print {
+  #rmd-print { overflow: visible; }
 }
 #rmd-print-inner {
   display: flex; flex-direction: column;
   min-height: 100%;
-  transform-origin: top left;
 }
 #rmd-print .rp-header {
   display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 16pt;
-  border-bottom: 1.5px solid #000; padding-bottom: 5pt; margin-bottom: 5pt;
+  gap: calc(16pt * var(--s, 1));
+  border-bottom: 1.5px solid #000; padding-bottom: calc(5pt * var(--s, 1)); margin-bottom: calc(5pt * var(--s, 1));
   flex-shrink: 0;
 }
 #rmd-print .rp-etiqueta {
-  border: 1px solid #000; width: 200pt; height: 52pt;
+  border: 1px solid #000; width: calc(200pt * var(--s, 1)); height: calc(52pt * var(--s, 1));
   display: flex; align-items: flex-start; justify-content: center;
-  padding-top: 3pt; font-size: 7.5pt; font-weight: bold;
+  padding-top: calc(3pt * var(--s, 1)); font-size: calc(7.5pt * var(--s, 1)); font-weight: bold;
   letter-spacing: 0.06em; color: #444;
 }
 #rmd-print .rp-row {
-  display: flex; align-items: baseline; gap: 5pt; flex-wrap: wrap;
-  padding: 2.9pt 0; border-bottom: 1px solid #ddd;
+  display: flex; align-items: baseline; gap: calc(5pt * var(--s, 1)); flex-wrap: wrap;
+  padding: calc(2.9pt * var(--s, 1)) 0; border-bottom: 1px solid #ddd;
   break-inside: avoid; page-break-inside: avoid;
 }
 #rmd-print .rp-bold { font-weight: bold; white-space: nowrap; }
-#rmd-print .rp-cb { display: inline-flex; align-items: center; gap: 3pt; margin-right: 5pt; }
+#rmd-print .rp-cb { display: inline-flex; align-items: center; gap: calc(3pt * var(--s, 1)); margin-right: calc(5pt * var(--s, 1)); }
 #rmd-print .rp-box {
-  width: 8.5pt; height: 8.5pt; border: 1.3px solid #000;
+  width: calc(8.5pt * var(--s, 1)); height: calc(8.5pt * var(--s, 1)); border: 1.3px solid #000;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 7pt; font-weight: bold; flex-shrink: 0; vertical-align: middle;
+  font-size: calc(7pt * var(--s, 1)); font-weight: bold; flex-shrink: 0; vertical-align: middle;
 }
 #rmd-print .rp-box.on { background: #000; color: #fff; }
-#rmd-print .rp-ul { display: inline-block; min-width: 68pt; border-bottom: 1px solid #000; padding: 0 2pt; vertical-align: baseline; }
-#rmd-print .rp-ul-w { min-width: 130pt; }
-#rmd-print .rp-ul-xl { min-width: 200pt; }
-#rmd-print .rp-step-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3pt; margin: 3pt 0; }
-#rmd-print .rp-step-cell { border: 1px solid #000; padding: 2pt; text-align: center; font-weight: bold; font-size: 8.8pt; }
+#rmd-print .rp-ul { display: inline-block; min-width: calc(68pt * var(--s, 1)); border-bottom: 1px solid #000; padding: 0 calc(2pt * var(--s, 1)); vertical-align: baseline; }
+#rmd-print .rp-ul-w { min-width: calc(130pt * var(--s, 1)); }
+#rmd-print .rp-ul-xl { min-width: calc(200pt * var(--s, 1)); }
+#rmd-print .rp-step-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: calc(3pt * var(--s, 1)); margin: calc(3pt * var(--s, 1)) 0; }
+#rmd-print .rp-step-cell { border: 1px solid #000; padding: calc(2pt * var(--s, 1)); text-align: center; font-weight: bold; font-size: calc(8.8pt * var(--s, 1)); }
 #rmd-print .rp-step-cell.on { background: #000; color: #fff; }
-#rmd-print .rp-dev-table { width: 100%; border-collapse: collapse; margin: 3pt 0; font-size: 8.4pt; break-inside: avoid; }
-#rmd-print .rp-dev-table td, #rmd-print .rp-dev-table th { border: 1px solid #aaa; padding: 2pt 5pt; }
+#rmd-print .rp-dev-table { width: 100%; border-collapse: collapse; margin: calc(3pt * var(--s, 1)) 0; font-size: calc(8.4pt * var(--s, 1)); break-inside: avoid; }
+#rmd-print .rp-dev-table td, #rmd-print .rp-dev-table th { border: 1px solid #aaa; padding: calc(2pt * var(--s, 1)) calc(5pt * var(--s, 1)); }
 #rmd-print .rp-dev-table th { background: #f0f0f0; font-weight: bold; }
 #rmd-print .rp-plano-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 #rmd-print .rp-plano {
-  border: 1px solid #000; flex: 1; min-height: 62pt;
-  padding: 4pt; margin-top: 2pt; font-size: 9pt; white-space: pre-wrap;
+  border: 1px solid #000; flex: 1; min-height: calc(62pt * var(--s, 1));
+  padding: calc(4pt * var(--s, 1)); margin-top: calc(2pt * var(--s, 1)); font-size: calc(9pt * var(--s, 1)); white-space: pre-wrap;
 }
-#rmd-print .rp-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14pt; }
+#rmd-print .rp-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 calc(14pt * var(--s, 1)); }
 /* As assinaturas fecham a folha e não podem escorregar para a pagina 2:
    break-inside evita a divisao do bloco e as margens enxutas garantem que
    ele caiba no que resta da primeira pagina. */
 #rmd-print .rp-sign-row {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14pt; margin-top: 12pt;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: calc(14pt * var(--s, 1)); margin-top: calc(12pt * var(--s, 1));
   flex-shrink: 0;
   break-inside: avoid; page-break-inside: avoid;
 }
-#rmd-print .rp-sign-line { border-top: 1px solid #000; padding-top: 2pt; margin-top: 18pt; font-size: 8pt; text-align: center; }
-#rmd-print .rp-steptxt { font-size: 7.6pt; color: #555; margin-top: 3pt; line-height: 1.5; }
-#rmd-print .rp-id-row { display: flex; gap: 20pt; padding: 3.5pt 0; border-bottom: 1px solid #ddd; margin-bottom: 2pt; font-size: 9.4pt; flex-shrink: 0; }
-#rmd-print .rp-title { font-weight: bold; font-size: 9.4pt; margin: 5pt 0 1pt; display: block; }
+#rmd-print .rp-sign-line { border-top: 1px solid #000; padding-top: calc(2pt * var(--s, 1)); margin-top: calc(18pt * var(--s, 1)); font-size: calc(8pt * var(--s, 1)); text-align: center; }
+#rmd-print .rp-steptxt { font-size: calc(7.6pt * var(--s, 1)); color: #555; margin-top: calc(3pt * var(--s, 1)); line-height: 1.5; }
+#rmd-print .rp-id-row { display: flex; gap: calc(20pt * var(--s, 1)); padding: calc(3.5pt * var(--s, 1)) 0; border-bottom: 1px solid #ddd; margin-bottom: calc(2pt * var(--s, 1)); font-size: calc(9.4pt * var(--s, 1)); flex-shrink: 0; }
+#rmd-print .rp-title { font-weight: bold; font-size: calc(9.4pt * var(--s, 1)); margin: calc(5pt * var(--s, 1)) 0 calc(1pt * var(--s, 1)); display: block; }
 
 @media screen {
   /* Fora da pré-visualização o portal sai de vista, mas NÃO com display:none:
@@ -232,6 +237,9 @@ const PRINT_CSS = `
     margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     transform: scale(var(--zoom, 1)); transform-origin: top center;
   }
+  /* Compensa a altura que a folha perde ao ser reduzida na tela, para que a
+     barra inferior não fique sobre ela. */
+  #rmd-print-portal.rmd-preview { --altura-extra: 0px; }
 }
 
 @media print {
@@ -258,15 +266,13 @@ const PRINT_CSS = `
     display: block !important;
     width: auto !important; height: 275mm !important;
     margin: 0 !important; padding: 0 !important;
-    box-shadow: none !important; overflow: hidden !important;
+    box-shadow: none !important;
     /* O zoom da pré-visualização serve para caber na tela do tablet; no papel
        a folha já tem o tamanho certo e ele precisa ser anulado. */
     transform: none !important;
   }
+  #rmd-print-inner { transform: none !important; width: 100% !important; zoom: normal !important; }
   .rmd-preview-bar { display: none !important; }
-
-  /* A redução do miolo é a única escala que sobrevive à impressão. */
-  #rmd-print-inner { transform-origin: top left !important; }
 
   /* O documento é de uma folha só: nada pode gerar página seguinte. */
   #rmd-print, #rmd-print * { break-after: avoid; page-break-after: avoid; }
@@ -708,56 +714,35 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
    * proporcional, alargando o miolo na mesma medida para manter a largura.
    * Duas passadas bastam para convergir, porque alargar reflui o texto.
    */
+  /**
+   * Encaixa a folha em uma página só.
+   *
+   * A redução é feita pela variável --s, que multiplica TODOS os tamanhos em
+   * pt da folha: o texto reflui de verdade, exatamente como aconteceria com
+   * uma fonte menor. Antes isso era feito com transform/zoom, que funciona no
+   * Chrome mas não sobrevive ao motor de impressão do Safari — no iPad a
+   * folha saía com barras pretas, conteúdo deslocado e em duas páginas,
+   * porque a impressão partia do layout NÃO transformado.
+   */
   const ajustarEscala = useCallback(() => {
     const caixa = document.getElementById('rmd-print');
     const miolo = document.getElementById('rmd-print-inner');
     if (!caixa || !miolo) return;
 
-    // O Safari do iPad trata `transform: scale()` de forma inconsistente na
-    // impressão: a escala vale na tela, mas o motor de impressão parte do
-    // layout NÃO transformado, e a folha sai desconfigurada. `zoom` altera o
-    // layout de verdade, então a medida vale igual nos dois. O transform fica
-    // de reserva para navegadores sem suporte a zoom.
-    const usaZoom = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('zoom', '0.9');
-    const aplicar = (k) => {
-      miolo.style.width = k < 1 ? `${100 / k}%` : '100%';
-      if (usaZoom) {
-        miolo.style.zoom = k < 1 ? String(k) : '';
-        miolo.style.transform = 'none';
-      } else {
-        miolo.style.zoom = '';
-        miolo.style.transform = k < 1 ? `scale(${k})` : 'none';
-      }
-    };
-
-    aplicar(1);
-
-    // Três passadas: alargar o miolo reflui o texto e muda a altura, então a
-    // primeira estimativa sempre erra um pouco. NÃO existe piso de redução —
-    // um piso fazia o conteúdo que não coubesse ser cortado pelo overflow, e
-    // era assim que as assinaturas sumiam nos formulários mais preenchidos.
-    // clientHeight INCLUI o padding. Na tela a folha tem 297mm de altura com
-    // 11mm de padding em cima e embaixo, então clientHeight devolvia 297mm
-    // enquanto a área realmente utilizável é de 275mm — os mesmos 275mm da
-    // caixa na impressão, onde não há padding. A escala saía calculada para
-    // uma folha 22mm maior do que a real, e era essa diferença que cortava as
-    // assinaturas no papel. Descontar o padding iguala as duas medidas.
     const estilo = window.getComputedStyle(caixa);
     const padding = (parseFloat(estilo.paddingTop) || 0) + (parseFloat(estilo.paddingBottom) || 0);
 
     let k = 1;
-    for (let passada = 0; passada < 3; passada++) {
+    caixa.style.setProperty('--s', '1');
+
+    // Quatro passadas: mudar o tamanho da fonte reflui o texto e altera a
+    // altura, então cada estimativa refina a anterior.
+    for (let passada = 0; passada < 4; passada++) {
       const util = caixa.clientHeight - padding;
       const real = miolo.scrollHeight;
-      if (!util || !real || real <= util + 1) break;
-      k = k * (util / real);
-      aplicar(k);
-    }
-    // Margem de 1,5%: o motor de impressão arredonda diferente do da tela, e
-    // a última linha a sair seria justamente a das assinaturas.
-    if (k < 1) {
-      k = k * 0.985;
-      aplicar(k);
+      if (!util || !real || real <= util - 2) break;
+      k = k * (util / real) * 0.995;
+      caixa.style.setProperty('--s', String(k));
     }
     setEscala(k);
   }, []);
