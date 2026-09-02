@@ -11,6 +11,7 @@
 
 import React, { useContext, useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
+import NewsScore from './NewsScore';
 
 // ─── ESTADO INICIAL ───────────────────────────────────────────────────────────
 export const emptyForm = (leito = '') => ({
@@ -34,6 +35,7 @@ export const emptyForm = (leito = '') => ({
 
   sec_sim: false, sec_nao: false, sec_aspecto: '',
   sec_qtd_peq: false, sec_qtd_med: false, sec_qtd_gde: false,
+  sec_tosse_ef: false, sec_tosse_parc: false,
 
   step_a: false, step_b: false, step_c: false, step_d: false,
   step_e: false, step_f: false, step_nao: false,
@@ -46,6 +48,7 @@ export const emptyForm = (leito = '') => ({
   dev_cv_sim: false, dev_cv_nao: false, dev_cv_sitio: '', dev_cv_obs: '',
   dev_shilley_sitio: '', dev_shilley_obs: '',
   dev_sne_sim: false, dev_sne_nao: false, dev_sne_ausente: false, dev_sne_obs: '',
+  dev_gtt_sim: false, dev_gtt_nao: false, dev_gtt_ausente: false, dev_gtt_obs: '',
   dev_svd_sim: false, dev_svd_nao: false, dev_svd_ausente: false, dev_svd_obs: '',
   dev_outros_sim: false, dev_outros_nao: false, dev_outros_ausente: false, dev_outros_obs: '',
 
@@ -54,6 +57,7 @@ export const emptyForm = (leito = '') => ({
   hig_sim: false, hig_nao: false, hig_escova_sim: false, hig_escova_nao: false,
   vis_usual: false, vis_estendida: false, vis_12h: false, vis_24h: false,
   alta_prevista: false, alta_data: '', alta_nao: false,
+  news_round: '', news_alta: '', news_params: null,
   plano: '',
 });
 
@@ -69,10 +73,12 @@ const GRUPOS_EXCLUSIVOS = [
   ['cuff_na', 'cuff_sim', 'cuff_nao'],
   ['sec_sim', 'sec_nao'],
   ['sec_qtd_peq', 'sec_qtd_med', 'sec_qtd_gde'],
+  ['sec_tosse_ef', 'sec_tosse_parc'],
   ['nut_vo', 'nut_npt', 'nut_sne', 'nut_npo'],
   ['nut_alvo_sim', 'nut_alvo_nao'],
   ['dev_cv_sim', 'dev_cv_nao'],
   ['dev_sne_sim', 'dev_sne_nao', 'dev_sne_ausente'],
+  ['dev_gtt_sim', 'dev_gtt_nao', 'dev_gtt_ausente'],
   ['dev_svd_sim', 'dev_svd_nao', 'dev_svd_ausente'],
   ['dev_outros_sim', 'dev_outros_nao', 'dev_outros_ausente'],
   ['lpp_sim', 'lpp_nao'],
@@ -105,6 +111,7 @@ const SUGESTOES = {
   dev_cv_obs:        ['Sem rede periférica', 'Droga vasoativa'],
   dev_shilley_obs:   ['Hemodiálise'],
   dev_sne_obs:       ['Ventilação mecânica', 'Impossibilidade de via oral'],
+  dev_gtt_obs:       ['Disfagia', 'Impossibilidade de via oral', 'Nutrição prolongada'],
   dev_svd_obs:       ['Controle de diurese', 'Sondagem tecnicamente difícil'],
   plano:             ['Pausa de sedação', 'Desmame de VM', 'Vigiar sinais de infecção',
                       'Vigiar desconforto', 'Vigiar padrão ventilatório', 'Neuroproteção',
@@ -570,6 +577,9 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         <span className="rp-cb"><PCB c={form.sec_qtd_peq} /> pequena</span>
         <span className="rp-cb"><PCB c={form.sec_qtd_med} /> média</span>
         <span className="rp-cb"><PCB c={form.sec_qtd_gde} /> grande</span>
+        {' '}Tosse:
+        <span className="rp-cb"><PCB c={form.sec_tosse_ef} /> efetiva</span>
+        <span className="rp-cb"><PCB c={form.sec_tosse_parc} /> parcialmente efetiva</span>
         {' '}Aspecto: <UL v={form.sec_aspecto} w />
       </div>
 
@@ -613,6 +623,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
               { l:'CV',    sitio:form.dev_cv_sitio, sim:form.dev_cv_sim,     nao:form.dev_cv_nao,     obs:form.dev_cv_obs,      cb:true  },
               { l:'Shilley',sitio:form.dev_shilley_sitio, sim:false,           nao:false,               obs:form.dev_shilley_obs, cb:false },
               { l:'SNE',   sitio:'',                sim:form.dev_sne_sim,    nao:form.dev_sne_nao,    obs:form.dev_sne_obs,     cb:true, ausente:form.dev_sne_ausente },
+              { l:'GTT',   sitio:'',                sim:form.dev_gtt_sim,    nao:form.dev_gtt_nao,    obs:form.dev_gtt_obs,     cb:true, ausente:form.dev_gtt_ausente },
               { l:'SVD',   sitio:'',                sim:form.dev_svd_sim,    nao:form.dev_svd_nao,    obs:form.dev_svd_obs,     cb:true, ausente:form.dev_svd_ausente },
               { l:'Outros',sitio:'',                sim:form.dev_outros_sim, nao:form.dev_outros_nao, obs:form.dev_outros_obs,  cb:true, ausente:form.dev_outros_ausente },
             ].map(d => (
@@ -669,6 +680,12 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
             <span className="rp-cb"><PCB c={form.alta_prevista} /> Prevista para: <UL v={form.alta_data} /></span>
             <span className="rp-cb"><PCB c={form.alta_nao} /> Não</span>
           </div>
+          {form.alta_prevista && (
+            <div className="rp-row">
+              <span className="rp-bold">NEWS no round:</span> <UL v={form.news_round} />
+              <span className="rp-bold" style={{ marginLeft:'8pt' }}>NEWS na alta:</span> <UL v={form.news_alta} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -712,6 +729,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
   }, []);
   const T = useContext(ThemeCtxRef);
   const [limparModal, setLimparModal] = useState(false);
+  const [newsModal, setNewsModal] = useState(false);
 
   // Nó no body para o portal de impressão e a folha de estilo.
   // Criados em efeito (não durante o render) para não deixar nós órfãos
@@ -878,6 +896,18 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
    */
   const imprimir = () => {
     setPreview(false);
+
+    // Alguns navegadores usam o título do documento PRINCIPAL como nome
+    // sugerido do arquivo, mesmo quando quem imprime é o iframe — daí o nome
+    // sair sempre como o título da página. Trocamos os dois.
+    const tituloOriginal = document.title;
+    document.title = leito ? String(leito) : 'round';
+    const restaurar = () => {
+      document.title = tituloOriginal;
+      window.removeEventListener('afterprint', restaurar);
+    };
+    window.addEventListener('afterprint', restaurar);
+    setTimeout(restaurar, 120000);
 
     requestAnimationFrame(() => requestAnimationFrame(() => {
       prepararFolha();
@@ -1301,6 +1331,9 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('sec_qtd_peq', 'Pequena', ac)}
               {CB('sec_qtd_med', 'Média', ye)}
               {CB('sec_qtd_gde', 'Grande', re)}
+              <span style={lblStyle}>Tosse:</span>
+              {CB('sec_tosse_ef', 'Efetiva', gr)}
+              {CB('sec_tosse_parc', 'Parcialmente efetiva', ye)}
               <span style={lblStyle}>⇒ Aspecto:</span>
               <Sugestoes opcoes={SUGESTOES.sec_aspecto} valor={form.sec_aspecto}
                 onChange={v => upd('sec_aspecto', v)} cor={ye} T={T} inputStyle={inputStyle}
@@ -1416,6 +1449,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               { label:'CVC',    simK:'dev_cv_sim',     naoK:'dev_cv_nao',     obsK:'dev_cv_obs',     sitioK:'dev_cv_sitio' },
               { label:'Shilley',simK:null,              naoK:null,             obsK:'dev_shilley_obs', sitioK:'dev_shilley_sitio' },
               { label:'SNE',    simK:'dev_sne_sim',    naoK:'dev_sne_nao',    obsK:'dev_sne_obs',    ausenteK:'dev_sne_ausente' },
+              { label:'GTT',    simK:'dev_gtt_sim',    naoK:'dev_gtt_nao',    obsK:'dev_gtt_obs',    ausenteK:'dev_gtt_ausente' },
               { label:'SVD',    simK:'dev_svd_sim',    naoK:'dev_svd_nao',    obsK:'dev_svd_obs',    ausenteK:'dev_svd_ausente' },
               { label:'Outros', simK:'dev_outros_sim', naoK:'dev_outros_nao', obsK:'dev_outros_obs', ausenteK:'dev_outros_ausente' },
             ].map(dev => (
@@ -1533,6 +1567,37 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               )}
               {CB('alta_nao', 'Não prevista', re)}
             </div>
+
+            {/* O escore só aparece quando há alta prevista, que é quando ele
+                serve de parâmetro objetivo para a decisão. */}
+            {form.alta_prevista && (
+              <div style={{ ...rowStyle, alignItems: 'center' }}>
+                <span style={lblStyle}>Score NEWS no round:</span>
+                <input type="text" value={form.news_round} readOnly
+                  placeholder="—"
+                  style={{ ...inputStyle(90), fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700, fontSize: 17, textAlign: 'center' }}
+                />
+                <button type="button" onClick={() => setNewsModal(true)}
+                  style={{
+                    minHeight: 46, padding: '0 16px', borderRadius: 10,
+                    background: `${ac}18`, border: `1.5px solid ${ac}50`, color: ac,
+                    fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>{form.news_round ? 'Recalcular' : 'Calcular NEWS'}</button>
+
+                <div style={{ width: 2, height: 32, background: T.border, margin: '0 4px' }} />
+
+                <span style={lblStyle}>Score NEWS na alta:</span>
+                <input type="text" value={form.news_alta}
+                  onChange={e => upd('news_alta', e.target.value)}
+                  placeholder="preencher na alta"
+                  style={{ ...inputStyle(150), fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700, fontSize: 17, textAlign: 'center' }}
+                  onFocus={e => { e.target.style.borderColor = ac; }}
+                  onBlur={e  => { e.target.style.borderColor = T.border; }}
+                />
+              </div>
+            )}
           </div>
 
           {/* ── 15. PLANO TERAPÊUTICO ── */}
@@ -1634,6 +1699,18 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
       </div>{/* /interface */}
 
       {/* MODAL — limpar */}
+      {newsModal && (
+        <NewsScore
+          T={T}
+          valoresIniciais={form.news_params}
+          onFechar={() => setNewsModal(false)}
+          onConfirmar={(total, params) => {
+            setForm(f => ({ ...f, news_round: String(total), news_params: params }));
+            setNewsModal(false);
+          }}
+        />
+      )}
+
       {limparModal && (
         <div style={{
           position: 'fixed', inset: 0,
