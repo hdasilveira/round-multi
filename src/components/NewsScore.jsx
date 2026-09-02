@@ -32,7 +32,19 @@ const num = (v) => {
 };
 
 /**
- * @returns { total, itens, completo, risco } ou null se faltar parâmetro.
+ * Pontuação de um único parâmetro, sem depender dos demais.
+ * É o que permite mostrar o ponto ao lado do campo assim que ele é digitado,
+ * em vez de esperar o formulário inteiro.
+ * @returns 0 a 3, ou null se o campo estiver vazio ou inválido.
+ */
+export const pontuarItem = (chave, valor) => {
+  if (!pontuar[chave]) return null;
+  const v = num(valor);
+  return v === null ? null : pontuar[chave](v);
+};
+
+/**
+ * @returns { total, itens, risco, algumTres } ou null se faltar parâmetro.
  */
 export const calcularNews = (p) => {
   const fr = num(p.fr), spo2 = num(p.spo2), temp = num(p.temp);
@@ -83,6 +95,16 @@ export default function NewsScore({ T, valoresIniciais, onConfirmar, onFechar })
     fr: '', spo2: '', temp: '', pas: '', fc: '', o2: false, consciencia: 'A',
   });
   const resultado = useMemo(() => calcularNews(p), [p]);
+
+  // Enquanto faltam campos, o rodapé mostra a soma do que já foi preenchido.
+  const { parcial, faltando } = useMemo(() => {
+    const chaves = CAMPOS.map(c => c.k);
+    const pontos = chaves.map(k => pontuarItem(k, p[k]));
+    const soma = pontos.reduce((a, v) => a + (v || 0), 0)
+      + (p.o2 ? 2 : 0)
+      + (p.consciencia && p.consciencia !== 'A' ? 3 : 0);
+    return { parcial: soma, faltando: pontos.filter(v => v === null).length };
+  }, [p]);
   const ac = T.accent || '#2d8cf0';
 
   const campo = {
@@ -137,11 +159,20 @@ export default function NewsScore({ T, valoresIniciais, onConfirmar, onFechar })
               <input inputMode="decimal" value={p[c.k]} placeholder={c.ph}
                 onChange={e => setP({ ...p, [c.k]: e.target.value })} style={campo} />
               <span style={{ fontSize: 13, color: T.textMuted, width: 44 }}>{c.un}</span>
-              <span style={{
-                width: 30, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace',
-                fontWeight: 700, fontSize: 16,
-                color: resultado ? (resultado.itens[c.k] === 3 ? '#ff5c5c' : resultado.itens[c.k] > 0 ? '#f5a623' : T.textDim) : T.textDim,
-              }}>{resultado ? resultado.itens[c.k] : '—'}</span>
+              {(() => {
+                // Cada campo mostra a própria pontuação assim que recebe um
+                // valor — não espera os outros serem preenchidos.
+                const ponto = pontuarItem(c.k, p[c.k]);
+                return (
+                  <span style={{
+                    width: 30, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700, fontSize: 16,
+                    color: ponto === null ? T.textDim
+                      : ponto === 3 ? '#ff5c5c'
+                      : ponto > 0 ? '#f5a623' : T.textDim,
+                  }}>{ponto === null ? '—' : ponto}</span>
+                );
+              })()}
             </div>
           ))}
 
@@ -189,12 +220,16 @@ export default function NewsScore({ T, valoresIniciais, onConfirmar, onFechar })
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
               <span style={{
                 fontFamily: 'JetBrains Mono, monospace', fontSize: 32, fontWeight: 800,
-                color: resultado ? resultado.risco.cor : T.textDim, lineHeight: 1.1,
-              }}>{resultado ? resultado.total : '—'}</span>
-              {resultado && (
+                color: resultado ? resultado.risco.cor : T.textMuted, lineHeight: 1.1,
+              }}>{resultado ? resultado.total : parcial}</span>
+              {resultado ? (
                 <span style={{ fontSize: 14, fontWeight: 700, color: resultado.risco.cor }}>
                   risco {resultado.risco.nome.toLowerCase()}
                   {resultado.algumTres && resultado.total < 5 ? ' (parâmetro isolado em 3)' : ''}
+                </span>
+              ) : (
+                <span style={{ fontSize: 13, color: T.textMuted }}>
+                  parcial — faltam {faltando} parâmetro{faltando > 1 ? 's' : ''}
                 </span>
               )}
             </div>
