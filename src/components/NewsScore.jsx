@@ -146,9 +146,12 @@ export default function NewsScore({ T, valoresIniciais, onConfirmar, onFechar })
           ))}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${T.border}`, flexWrap: 'wrap' }}>
-            <span style={{ flex: 1, minWidth: 170, fontSize: 14.5, color: T.text }}>Oxigênio suplementar</span>
-            <button onClick={() => setP({ ...p, o2: !p.o2 })} style={pastilha(p.o2, '#f5a623')}>
-              {p.o2 ? 'Em O₂' : 'Ar ambiente'}
+            <span style={{ flex: 1, minWidth: 150, fontSize: 14.5, color: T.text }}>Oxigenação</span>
+            <button onClick={() => setP({ ...p, o2: false })} style={pastilha(!p.o2, '#39d98a')}>
+              Ar ambiente
+            </button>
+            <button onClick={() => setP({ ...p, o2: true })} style={pastilha(p.o2, '#f5a623')}>
+              O₂ suplementar
             </button>
             <span style={{ width: 30, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 16, color: p.o2 ? '#f5a623' : T.textDim }}>
               {p.o2 ? 2 : 0}
