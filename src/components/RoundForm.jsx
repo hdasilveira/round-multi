@@ -371,7 +371,7 @@ const PRINT_CSS = PRINT_CSS_FOLHA + `@media screen {
  * estado dos filhos a cada pintura — o campo de texto perderia o foco a cada
  * caractere digitado.
  */
-function Sugestoes({ opcoes = [], valor = '', onChange, cor, placeholder, T, inputStyle, largura, livre = true }) {
+function Sugestoes({ opcoes = [], valor = '', onChange, cor, placeholder, T, inputStyle, largura, livre = true, rotulo }) {
   const termos = valor.split(/\s*[,;]\s*/).map(t => t.trim()).filter(Boolean);
   const marcado = (op) => termos.some(t => t.toLowerCase() === op.toLowerCase());
 
@@ -381,7 +381,10 @@ function Sugestoes({ opcoes = [], valor = '', onChange, cor, placeholder, T, inp
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 230 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: '1 1 100%', minWidth: 0 }}>
+      {rotulo && (
+        <span style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>{rotulo}</span>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {opcoes.map(op => (
           <button key={op} type="button" onClick={() => alternar(op)} aria-pressed={marcado(op)}
@@ -419,7 +422,7 @@ function Sugestoes({ opcoes = [], valor = '', onChange, cor, placeholder, T, inp
  * numa lista de texto: o mesmo sítio pode ter duas lesões de estágios
  * diferentes, e uma lista simples não daria conta disso.
  */
-function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
+function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle, estreito }) {
   const atualizar = (id, campo, valor) =>
     onChange(lesoes.map(l => (l.id === id ? { ...l, [campo]: valor } : l)));
 
@@ -429,7 +432,7 @@ function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
   const remover = (id) => onChange(lesoes.filter(l => l.id !== id));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 260 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: T.textMuted, marginRight: 2 }}>Acrescentar lesão:</span>
         {SUGESTOES.lpp_local.map(op => (
@@ -454,6 +457,12 @@ function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
         </div>
       )}
 
+      {/* Grade: as lesões ocupam a largura disponível em vez de empilharem
+          numa coluna estreita com faixas brancas dos dois lados. */}
+      <div style={{
+        display: 'grid', gap: 10,
+        gridTemplateColumns: estreito ? '1fr' : 'repeat(auto-fill,minmax(320px,1fr))',
+      }}>
       {lesoes.map((l, i) => (
         <div key={l.id} style={{
           border: `1.5px solid ${cor}35`, background: `${cor}0c`,
@@ -481,7 +490,10 @@ function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
               }}>✕</button>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{
+            display: 'grid', gap: 6,
+            gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))',
+          }}>
             {CLASSIFICACOES_LPP.map(c => {
               const marcado = l.classificacao === c;
               return (
@@ -499,6 +511,7 @@ function EditorLesoes({ lesoes = [], onChange, T, cor, inputStyle }) {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -1351,13 +1364,18 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('sec_qtd_peq', 'Pequena', ac)}
               {CB('sec_qtd_med', 'Média', ye)}
               {CB('sec_qtd_gde', 'Grande', re)}
+            </div>
+            <div style={rowStyle}>
               <span style={lblStyle}>Tosse:</span>
               {CB('sec_tosse_ef', 'Efetiva', gr)}
               {CB('sec_tosse_parc', 'Parcialmente efetiva', ye)}
-              <span style={lblStyle}>⇒ Aspecto:</span>
+            </div>
+            {/* O aspecto ganha linha própria: encaixado no meio da anterior,
+                ele partia os botões de tosse ao meio. */}
+            <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
               <Sugestoes opcoes={SUGESTOES.sec_aspecto} valor={form.sec_aspecto}
                 onChange={v => upd('sec_aspecto', v)} cor={ye} T={T} inputStyle={inputStyle}
-                placeholder="outros: descreva o aspecto"/>
+                rotulo="Aspecto" placeholder="outros: descreva o aspecto"/>
             </div>
           </div>
 
@@ -1473,25 +1491,41 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               { label:'Gastrostomia', simK:'dev_gtt_sim', naoK:'dev_gtt_nao', obsK:'dev_gtt_obs', ausenteK:'dev_gtt_ausente' },
               { label:'Outros', simK:'dev_outros_sim', naoK:'dev_outros_nao', obsK:'dev_outros_obs', ausenteK:'dev_outros_ausente' },
             ].map(dev => (
-              <div key={dev.label} style={{ ...rowStyle, alignItems: dev.sitioK ? 'flex-start' : 'center' }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: T.white, minWidth: 72,
-                  paddingTop: 8 }}>{dev.label}</span>
-                {dev.sitioK && <>
-                  <span style={lblStyle}>Sítio:</span>
-                  <Sugestoes opcoes={SUGESTOES[dev.sitioK]} valor={form[dev.sitioK]}
-                    onChange={v => upd(dev.sitioK, v)} cor={re} T={T} inputStyle={inputStyle}
-                    livre={false}/>
-                </>}
-                {dev.simK && <>
-                  <span style={lblStyle}>Pode remover?</span>
-                  {CB(dev.simK, 'Sim', gr)}
-                  {CB(dev.naoK, 'Não', re)}
-                  {/* Terceiro estado: o paciente não tem o dispositivo. */}
-                  {dev.ausenteK && CB(dev.ausenteK, 'Não possui', T.textMuted)}
-                </>}
+              // Cada dispositivo é um bloco em coluna ocupando a largura
+              // inteira. Antes tudo disputava uma única linha flexível: as
+              // sugestões eram empurradas para a direita e sobrava uma faixa
+              // branca à esquerda, sem uso.
+              <div key={dev.label} style={{
+                padding: estreito ? '12px 13px' : '14px 18px',
+                borderBottom: `1px solid ${T.border}40`,
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 15.5, fontWeight: 700, color: T.white, minWidth: 100 }}>
+                    {dev.label}
+                  </span>
+                  {dev.simK && <>
+                    <span style={lblStyle}>Pode remover?</span>
+                    {CB(dev.simK, 'Sim', gr)}
+                    {CB(dev.naoK, 'Não', re)}
+                    {/* Terceiro estado: o paciente não tem o dispositivo. */}
+                    {dev.ausenteK && CB(dev.ausenteK, 'Não possui', T.textMuted)}
+                  </>}
+                </div>
+
+                {dev.sitioK && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ ...lblStyle, paddingTop: 12 }}>Sítio:</span>
+                    <Sugestoes opcoes={SUGESTOES[dev.sitioK]} valor={form[dev.sitioK]}
+                      onChange={v => upd(dev.sitioK, v)} cor={re} T={T} inputStyle={inputStyle}
+                      livre={false}/>
+                  </div>
+                )}
+
                 <Sugestoes opcoes={SUGESTOES[dev.obsK] || []} valor={form[dev.obsK]}
                   onChange={v => upd(dev.obsK, v)} cor={ac} T={T} inputStyle={inputStyle}
-                  placeholder="justificativa da permanência"/>
+                  rotulo="Justificativa da permanência"
+                  placeholder="outra justificativa"/>
               </div>
             ))}
           </div>
@@ -1523,8 +1557,6 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('lpp_sim', 'Sim', re)}
               {CB('lpp_nao', 'Não', gr)}
               {form.lpp_sim && <>
-                <EditorLesoes lesoes={form.lpp_lesoes} onChange={v => upd('lpp_lesoes', v)}
-                  T={T} cor={re} inputStyle={inputStyle}/>
                 <span style={lblStyle}>Tratamento:</span>
                 <input type="text" value={form.lpp_tratamento}
                   onChange={e => upd('lpp_tratamento', e.target.value)}
@@ -1535,6 +1567,12 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
                 />
               </>}
             </div>
+            {form.lpp_sim && (
+              <div style={{ padding: estreito ? '0 13px 14px' : '0 18px 16px' }}>
+                <EditorLesoes lesoes={form.lpp_lesoes} onChange={v => upd('lpp_lesoes', v)}
+                  T={T} cor={re} inputStyle={inputStyle} estreito={estreito}/>
+              </div>
+            )}
           </div>
 
           {/* ── 12. HIGIENE ORAL ── */}
