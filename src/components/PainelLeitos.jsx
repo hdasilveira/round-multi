@@ -3,13 +3,26 @@
  * Situação de cada leito da área. É a tela onde a equipe se orienta durante o
  * round: quem já foi feito, quem falta, e por que um leito não foi avaliado.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AREAS, STATUS, leitosDaArea, contagem, concluida } from '../utils/sessao';
 
 export default function PainelLeitos({
   T, sessao, onAbrirLeito, onJustificar, onReabrir, onTrocarArea, dark, onToggleTheme,
 }) {
   const [menu, setMenu] = useState(null); // leito com menu de justificativa aberto
+  // Em tablet de pé cabe uma coluna de leitos; deitado, duas ou três.
+  const [estreito, setEstreito] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 900 : false
+  );
+  useEffect(() => {
+    const aoRedimensionar = () => setEstreito(window.innerWidth < 900);
+    window.addEventListener('resize', aoRedimensionar);
+    window.addEventListener('orientationchange', aoRedimensionar);
+    return () => {
+      window.removeEventListener('resize', aoRedimensionar);
+      window.removeEventListener('orientationchange', aoRedimensionar);
+    };
+  }, []);
   const leitos = leitosDaArea(sessao.area);
   const cont = contagem(sessao);
   const tudoPronto = concluida(sessao);
@@ -46,7 +59,7 @@ export default function PainelLeitos({
         }}>Trocar área</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 40px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: estreito ? '14px 12px 40px' : '18px 16px 40px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -66,7 +79,7 @@ export default function PainelLeitos({
             </div>
           )}
 
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: estreito ? '1fr' : 'repeat(auto-fill,minmax(300px,1fr))' }}>
             {leitos.map(n => {
               const l = sessao.leitos[n] || { status: 'pendente' };
               const st = STATUS[l.status];
