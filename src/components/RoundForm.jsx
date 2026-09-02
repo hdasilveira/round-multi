@@ -74,7 +74,12 @@ const GRUPOS_EXCLUSIVOS = [
   ['sec_sim', 'sec_nao'],
   ['sec_qtd_peq', 'sec_qtd_med', 'sec_qtd_gde'],
   ['sec_tosse_ef', 'sec_tosse_parc'],
-  ['nut_vo', 'nut_npt', 'nut_sne', 'nut_npo'],
+  // As vias podem coexistir (SNE + dieta trófica, VO + suplemento). Só o
+  // jejum é excludente: quem está em NPO não está recebendo por via alguma.
+  ['nut_npo', 'nut_vo'],
+  ['nut_npo', 'nut_npt'],
+  ['nut_npo', 'nut_sne'],
+  ['nut_npo', 'nut_trofica'],
   ['nut_alvo_sim', 'nut_alvo_nao'],
   ['dev_cv_sim', 'dev_cv_nao'],
   ['dev_sne_sim', 'dev_sne_nao', 'dev_sne_ausente'],
@@ -91,9 +96,19 @@ const GRUPOS_EXCLUSIVOS = [
   ['step_a', 'step_b', 'step_c', 'step_d', 'step_e', 'step_f', 'step_nao'],
 ];
 
+/**
+ * Todas as opções que se excluem com `k`.
+ *
+ * Percorre TODOS os grupos, não só o primeiro: uma chave pode participar de
+ * vários pares. O jejum, por exemplo, exclui cada via de nutrição
+ * separadamente, porque as vias entre si podem coexistir.
+ */
 const irmasDe = (k) => {
-  const g = GRUPOS_EXCLUSIVOS.find(grupo => grupo.includes(k));
-  return g ? g.filter(x => x !== k) : [];
+  const irmas = new Set();
+  GRUPOS_EXCLUSIVOS.forEach(grupo => {
+    if (grupo.includes(k)) grupo.forEach(x => { if (x !== k) irmas.add(x); });
+  });
+  return [...irmas];
 };
 
 // Opções pré-escritas dos campos de texto. Ficam agrupadas aqui para que
@@ -623,8 +638,8 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
               { l:'CV',    sitio:form.dev_cv_sitio, sim:form.dev_cv_sim,     nao:form.dev_cv_nao,     obs:form.dev_cv_obs,      cb:true  },
               { l:'Shilley',sitio:form.dev_shilley_sitio, sim:false,           nao:false,               obs:form.dev_shilley_obs, cb:false },
               { l:'SNE',   sitio:'',                sim:form.dev_sne_sim,    nao:form.dev_sne_nao,    obs:form.dev_sne_obs,     cb:true, ausente:form.dev_sne_ausente },
-              { l:'GTT',   sitio:'',                sim:form.dev_gtt_sim,    nao:form.dev_gtt_nao,    obs:form.dev_gtt_obs,     cb:true, ausente:form.dev_gtt_ausente },
               { l:'SVD',   sitio:'',                sim:form.dev_svd_sim,    nao:form.dev_svd_nao,    obs:form.dev_svd_obs,     cb:true, ausente:form.dev_svd_ausente },
+              { l:'Gastrostomia', sitio:'',          sim:form.dev_gtt_sim,    nao:form.dev_gtt_nao,    obs:form.dev_gtt_obs,     cb:true, ausente:form.dev_gtt_ausente },
               { l:'Outros',sitio:'',                sim:form.dev_outros_sim, nao:form.dev_outros_nao, obs:form.dev_outros_obs,  cb:true, ausente:form.dev_outros_ausente },
             ].map(d => (
               <tr key={d.l}>
@@ -976,39 +991,43 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
   const ye = T.yellow || '#f5a623';
 
   // ── Atoms de estilo inline (não são componentes React, são só objetos) ──
+  // Em tablet de pé a largura é escassa e a altura sobra: os controles ficam
+  // um pouco menores na horizontal e o conteúdo quebra em mais linhas, em vez
+  // de espremer tudo numa faixa só.
   const inputStyle = (extraW) => ({
     background: T.bg, border: `2px solid ${T.border}`,
-    borderRadius: 8, padding: '10px 14px',
-    fontSize: 15, color: T.text,
+    borderRadius: 8, padding: estreito ? '10px 12px' : '10px 14px',
+    fontSize: estreito ? 16 : 15, color: T.text,   // 16px evita o zoom automático do iOS
     outline: 'none', minWidth: 0,
-    width: extraW || undefined,
-    flex: extraW ? '0 0 auto' : 1,
+    width: extraW ? (estreito ? Math.min(extraW, 120) : extraW) : undefined,
+    flex: extraW ? '0 0 auto' : '1 1 140px',
     fontFamily: 'inherit',
   });
 
   const cbPillStyle = (active, color) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 10,
+    display: 'inline-flex', alignItems: 'center', gap: estreito ? 8 : 10,
     cursor: 'pointer', userSelect: 'none',
-    padding: '10px 16px',
+    padding: estreito ? '10px 13px' : '10px 16px',
     background: active ? `${color}20` : T.surface2,
     border: `2px solid ${active ? color : T.border}`,
     borderRadius: 10, minHeight: 48, flexShrink: 0,
   });
 
   const cbTextStyle = (active, color) => ({
-    fontSize: 15, fontWeight: active ? 700 : 400,
+    fontSize: estreito ? 14 : 15, fontWeight: active ? 700 : 400,
     color: active ? color : T.text, whiteSpace: 'nowrap',
   });
 
   const shStyle = (color) => ({
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '13px 18px',
+    padding: estreito ? '12px 13px' : '13px 18px',
     background: `${color}14`, borderLeft: `4px solid ${color}`,
   });
 
   const rowStyle = {
-    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
-    padding: '12px 18px',
+    display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+    gap: estreito ? 8 : 10,
+    padding: estreito ? '12px 13px' : '12px 18px',
     borderBottom: `1px solid ${T.border}40`,
   };
 
@@ -1101,8 +1120,9 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
         {/* TOPBAR */}
         <div style={{
           background: T.surface, borderBottom: `1px solid ${T.border}`,
-          padding: '12px 20px', display: 'flex', alignItems: 'center',
-          gap: 14, flexShrink: 0, flexWrap: 'wrap',
+          padding: estreito ? '10px 12px' : '12px 20px',
+          display: 'flex', alignItems: 'center',
+          gap: estreito ? 9 : 14, flexShrink: 0, flexWrap: 'wrap',
         }}>
           <button onClick={onVoltar} style={{
             background: 'none', border: `1px solid ${T.border}`,
@@ -1155,7 +1175,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
         <div style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
-          padding: '16px 16px 80px',
+          padding: estreito ? '12px 10px 90px' : '16px 16px 80px',
         }}>
 
           {/* CABEÇALHO */}
@@ -1449,8 +1469,8 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               { label:'CVC',    simK:'dev_cv_sim',     naoK:'dev_cv_nao',     obsK:'dev_cv_obs',     sitioK:'dev_cv_sitio' },
               { label:'Shilley',simK:null,              naoK:null,             obsK:'dev_shilley_obs', sitioK:'dev_shilley_sitio' },
               { label:'SNE',    simK:'dev_sne_sim',    naoK:'dev_sne_nao',    obsK:'dev_sne_obs',    ausenteK:'dev_sne_ausente' },
-              { label:'GTT',    simK:'dev_gtt_sim',    naoK:'dev_gtt_nao',    obsK:'dev_gtt_obs',    ausenteK:'dev_gtt_ausente' },
               { label:'SVD',    simK:'dev_svd_sim',    naoK:'dev_svd_nao',    obsK:'dev_svd_obs',    ausenteK:'dev_svd_ausente' },
+              { label:'Gastrostomia', simK:'dev_gtt_sim', naoK:'dev_gtt_nao', obsK:'dev_gtt_obs', ausenteK:'dev_gtt_ausente' },
               { label:'Outros', simK:'dev_outros_sim', naoK:'dev_outros_nao', obsK:'dev_outros_obs', ausenteK:'dev_outros_ausente' },
             ].map(dev => (
               <div key={dev.label} style={{ ...rowStyle, alignItems: dev.sitioK ? 'flex-start' : 'center' }}>
@@ -1573,11 +1593,25 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
             {form.alta_prevista && (
               <div style={{ ...rowStyle, alignItems: 'center' }}>
                 <span style={lblStyle}>Score NEWS no round:</span>
-                <input type="text" value={form.news_round} readOnly
+                {/* Editável: a calculadora preenche, mas o valor pode ser
+                    corrigido ou apagado à mão. */}
+                <input type="text" inputMode="numeric" value={form.news_round}
+                  onChange={e => upd('news_round', e.target.value.replace(/[^\d]/g, ''))}
                   placeholder="—"
                   style={{ ...inputStyle(90), fontFamily: 'JetBrains Mono, monospace',
                     fontWeight: 700, fontSize: 17, textAlign: 'center' }}
+                  onFocus={e => { e.target.style.borderColor = ac; }}
+                  onBlur={e  => { e.target.style.borderColor = T.border; }}
                 />
+                {form.news_round && (
+                  <button type="button" onClick={() => upd('news_round', '')}
+                    title="Apagar o escore"
+                    style={{
+                      minHeight: 46, padding: '0 13px', borderRadius: 10,
+                      background: 'none', border: `1.5px solid ${T.border}`, color: T.textMuted,
+                      fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
+                    }}>✕</button>
+                )}
                 <button type="button" onClick={() => setNewsModal(true)}
                   style={{
                     minHeight: 46, padding: '0 16px', borderRadius: 10,
