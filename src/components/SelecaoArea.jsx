@@ -12,7 +12,8 @@ export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, on
     <div style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column' }}>
       <div style={{
         padding: '14px 18px', borderBottom: `1px solid ${T.border}`,
-        background: T.surface, display: 'flex', alignItems: 'center', gap: 12,
+        background: T.surface, display: 'flex', alignItems: 'center', gap: 10,
+        flexWrap: 'wrap',
       }}>
         <div style={{
           width: 40, height: 40, borderRadius: 11,
@@ -24,7 +25,7 @@ export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, on
           <div style={{ fontWeight: 800, fontSize: 20, color: T.white, letterSpacing: '-0.03em', lineHeight: 1.1 }}>iMulti</div>
           <div style={{ fontSize: 12, color: T.textMuted }}>Round multidisciplinar</div>
         </div>
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, minWidth: 8 }} />
         <button onClick={onTutorial} style={{
           background: 'none', border: `1px solid #4ecdc450`, color: '#4ecdc4',
           padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700,
