@@ -40,7 +40,7 @@ export const emptyForm = (leito = '') => ({
   step_a: false, step_b: false, step_c: false, step_d: false,
   step_e: false, step_f: false, step_nao: false,
 
-  nut_vo: false, nut_npt: false, nut_sne: false, nut_npo: false,
+  nut_vo: false, nut_npt: false, nut_sne: false, nut_gtt: false, nut_npo: false,
   nut_alvo_sim: false, nut_alvo_nao: false, nut_alvo: '', nut_taxa_atual: '',
   nut_trofica: false,
   nut_progredir: false, nut_npo_motivo: '',
@@ -79,6 +79,7 @@ const GRUPOS_EXCLUSIVOS = [
   ['nut_npo', 'nut_vo'],
   ['nut_npo', 'nut_npt'],
   ['nut_npo', 'nut_sne'],
+  ['nut_npo', 'nut_gtt'],
   ['nut_npo', 'nut_trofica'],
   ['nut_alvo_sim', 'nut_alvo_nao'],
   ['dev_cv_sim', 'dev_cv_nao'],
@@ -623,6 +624,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         <span className="rp-cb"><PCB c={form.nut_vo}  /> VO</span>
         <span className="rp-cb"><PCB c={form.nut_npt} /> NPT</span>
         <span className="rp-cb"><PCB c={form.nut_sne} /> SNE</span>
+        <span className="rp-cb"><PCB c={form.nut_gtt} /> Gastrostomia</span>
         Alvo:
         <span className="rp-cb"><PCB c={form.nut_trofica} /> Dieta trófica</span>
         {' '}Alvo: <UL v={form.nut_alvo} /> mL/h
@@ -1434,6 +1436,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('nut_vo', 'VO', or)}
               {CB('nut_npt', 'NPT', or)}
               {CB('nut_sne', 'SNE', or)}
+              {CB('nut_gtt', 'Gastrostomia', or)}
               {CB('nut_trofica', 'Dieta trófica', te)}
             </div>
             <div style={rowStyle}>
