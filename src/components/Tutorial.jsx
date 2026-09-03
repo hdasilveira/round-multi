@@ -3,7 +3,7 @@
  * Passo a passo de uso, aberto pelo botão da tela inicial e automaticamente
  * na primeira vez que o aparelho abre o aplicativo.
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 export const CHAVE_TUTORIAL = 'imulti_tutorial_visto';
 
@@ -17,7 +17,7 @@ export const marcarTutorialVisto = () => {
   try { localStorage.setItem(CHAVE_TUTORIAL, '1'); } catch (_) { /* indisponível */ }
 };
 
-const PASSOS = [
+const montarPassos = (area) => [
   {
     icone: '🩺',
     titulo: 'O que é o iMulti',
@@ -62,16 +62,48 @@ const PASSOS = [
   },
   {
     icone: '🖨️',
-    titulo: '4. Imprima ou salve a folha',
+    titulo: '4. Gere a folha do leito',
     texto: 'Use "Pré-visualizar" para conferir e "Imprimir / Salvar" para gerar o documento. A folha sempre cabe em uma página só.',
     itens: [
-      'Confira antes se o tablet está conectado à impressora da unidade.',
-      'Ao concluir um leito, toque em "Imprimir / Salvar".',
       'Ao salvar como PDF, o nome do arquivo já vem preenchido com o número do leito.',
       'A folha traz espaço para etiqueta e assinatura de médico, enfermeiro e fisioterapeuta.',
       'Um leito concluído pode ser reaberto para revisar ou reimprimir.',
     ],
-    nota: 'Se o seu navegador não trouxer o nome preenchido, digite só o número do leito — assim os arquivos ficam em ordem na hora de imprimir todos de uma vez.',
+    nota: 'No iPad o caminho é outro: em vez de imprimir na hora, salve cada leito no Drive e imprima tudo depois, pelo computador. Os próximos passos mostram como.',
+  },
+  {
+    icone: '📐',
+    titulo: 'iPad · 1. Ajuste para 93%',
+    texto: 'Na caixa de impressão do iPad, antes de qualquer coisa, confira estes três campos.',
+    itens: [
+      'Tamanho do papel: A4.',
+      'Orientação: vertical.',
+      'Redimensionamento: 93%.',
+    ],
+    imagem: 'ipad-1-redimensionar.jpg',
+    nota: 'Os 93% são necessários porque o Safari usa margens próprias, maiores que as do documento. Sem esse ajuste a folha passa para uma segunda página.',
+  },
+  {
+    icone: '📤',
+    titulo: 'iPad · 2. Envie para o Drive',
+    texto: 'Confirmado o ajuste, toque no ícone de compartilhamento no alto da tela e escolha o Google Drive.',
+    itens: [
+      'O arquivo já vem nomeado com o número do leito — confira antes de enviar.',
+      'Não toque em "Imprimir": no round, o iPad só gera e guarda o arquivo.',
+    ],
+    imagem: 'ipad-2-compartilhar.jpg',
+  },
+  {
+    icone: '📁',
+    titulo: 'iPad · 3. Salve na pasta da área',
+    texto: `Confira a conta e a pasta de destino antes de confirmar o envio.`,
+    itens: [
+      'Conta: passagemdeplantaoutihusfp@gmail.com',
+      `Pasta: Round Multi - Área ${area || '(a área do round)'}`,
+      'Repita para cada leito, sempre na mesma pasta.',
+    ],
+    imagem: 'ipad-3-drive.jpg',
+    nota: 'Ao terminar o round, abra o Drive pelo computador da unidade e imprima todos os arquivos da pasta de uma vez.',
   },
   {
     icone: '💾',
@@ -85,8 +117,9 @@ const PASSOS = [
   },
 ];
 
-export default function Tutorial({ T, onFechar }) {
+export default function Tutorial({ T, area, onFechar }) {
   const [i, setI] = useState(0);
+  const PASSOS = useMemo(() => montarPassos(area), [area]);
   const passo = PASSOS[i];
   const ultimo = i === PASSOS.length - 1;
   const ac = T.accent;
@@ -143,6 +176,17 @@ export default function Tutorial({ T, onFechar }) {
               </div>
             ))}
           </div>
+
+          {passo.imagem && (
+            <img
+              src={`${process.env.PUBLIC_URL || ''}/tutorial/${passo.imagem}`}
+              alt={passo.titulo}
+              style={{
+                width: '100%', marginTop: 16, borderRadius: 10,
+                border: `1px solid ${T.border}`, display: 'block',
+              }}
+            />
+          )}
 
           {passo.nota && (
             <div style={{
