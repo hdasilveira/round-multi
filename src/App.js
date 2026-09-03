@@ -118,6 +118,7 @@ export default function App() {
           onJustificar={justificar}
           onReabrir={reabrir}
           onTrocarArea={() => setTela('area')}
+          onTutorial={() => setTutorial(true)}
         />
       ) : (
         <RoundForm
@@ -130,7 +131,7 @@ export default function App() {
         />
       )}
 
-      {tutorial && <Tutorial T={T} onFechar={() => setTutorial(false)} />}
+      {tutorial && <Tutorial T={T} area={sessao?.area} onFechar={() => setTutorial(false)} />}
     </ThemeCtx.Provider>
   );
 }
