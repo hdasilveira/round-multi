@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { AREAS, STATUS, leitosDaArea, contagem, concluida } from '../utils/sessao';
 
 export default function PainelLeitos({
-  T, sessao, onAbrirLeito, onJustificar, onReabrir, onTrocarArea, dark, onToggleTheme,
+  T, sessao, onAbrirLeito, onJustificar, onReabrir, onTrocarArea, onTutorial, dark, onToggleTheme,
 }) {
   const [menu, setMenu] = useState(null); // leito com menu de justificativa aberto
   // Em tablet de pé cabe uma coluna de leitos; deitado, duas ou três.
@@ -53,6 +53,11 @@ export default function PainelLeitos({
           background: T.surface2, border: `1px solid ${T.border}`, color: T.textMuted,
           padding: '7px 13px', borderRadius: 20, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit',
         }}>{dark ? '☀️' : '🌙'}</button>
+        <button onClick={onTutorial} style={{
+          background: 'none', border: `1px solid #4ecdc450`, color: '#4ecdc4',
+          padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>❔ Como salvar</button>
         <button onClick={onTrocarArea} style={{
           background: 'none', border: `1px solid ${T.border}`, color: T.textMuted,
           padding: '7px 14px', borderRadius: 8, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit',
