@@ -159,6 +159,17 @@ const CLASSIFICACOES_LPP = [
   'Lesão tissular profunda', 'LPRDM', 'Não classificável',
 ];
 
+/**
+ * Converte a data do seletor (aaaa-mm-dd) para o formato brasileiro.
+ * O <input type="date"> sempre guarda em ISO, independentemente de como o
+ * sistema a exibe — a conversão é para a folha impressa.
+ */
+const dataBR = (iso) => {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso);
+};
+
 /** "Sacral (Estágio 2); Calcâneo (LPRDM)" — texto da folha impressa. */
 const resumoLesoes = (lesoes = []) => lesoes
   .filter(l => l.local?.trim())
@@ -707,7 +718,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
           </div>
           <div className="rp-row">
             <span className="rp-bold">14. Alta?</span>
-            <span className="rp-cb"><PCB c={form.alta_prevista} /> Prevista para: <UL v={form.alta_data} /></span>
+            <span className="rp-cb"><PCB c={form.alta_prevista} /> Prevista para: <UL v={dataBR(form.alta_data)} /></span>
             <span className="rp-cb"><PCB c={form.alta_nao} /> Não</span>
           </div>
           {form.alta_prevista && (
@@ -1617,15 +1628,48 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
             </div>
             <div style={rowStyle}>
               {CB('alta_prevista', 'Prevista para:', gr)}
-              {form.alta_prevista && (
-                <input type="text" value={form.alta_data}
+              {form.alta_prevista && (<>
+                {/* Seletor nativo: abre o calendário do sistema no tablet, em
+                    vez de exigir digitação. O valor fica em aaaa-mm-dd e é
+                    convertido para dd/mm/aaaa só na folha impressa. */}
+                <input type="date" value={form.alta_data}
                   onChange={e => upd('alta_data', e.target.value)}
-                  placeholder="dd/mm/aaaa"
-                  style={{ ...inputStyle(160) }}
+                  style={{
+                    ...inputStyle(190),
+                    minHeight: 46,
+                    WebkitAppearance: 'none', appearance: 'none',
+                    colorScheme: T.isDark ? 'dark' : 'light',
+                  }}
                   onFocus={e => { e.target.style.borderColor = ac; }}
                   onBlur={e  => { e.target.style.borderColor = T.border; }}
                 />
-              )}
+                {/* Atalhos: a alta prevista é quase sempre para hoje ou amanhã. */}
+                {[['Hoje', 0], ['Amanhã', 1]].map(([rot, dias]) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + dias);
+                  const iso = d.toISOString().slice(0, 10);
+                  const marcado = form.alta_data === iso;
+                  return (
+                    <button key={rot} type="button" onClick={() => upd('alta_data', iso)}
+                      style={{
+                        minHeight: 46, padding: '0 15px', borderRadius: 10,
+                        border: `1.5px solid ${marcado ? gr : T.border}`,
+                        background: marcado ? `${gr}22` : 'transparent',
+                        color: marcado ? gr : T.textMuted,
+                        fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                      }}>{rot}</button>
+                  );
+                })}
+                {form.alta_data && (
+                  <button type="button" onClick={() => upd('alta_data', '')}
+                    title="Limpar a data"
+                    style={{
+                      minHeight: 46, padding: '0 13px', borderRadius: 10,
+                      background: 'none', border: `1.5px solid ${T.border}`, color: T.textMuted,
+                      fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
+                    }}>✕</button>
+                )}
+              </>)}
               {CB('alta_nao', 'Não prevista', re)}
             </div>
 
