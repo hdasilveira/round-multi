@@ -45,7 +45,9 @@ export const emptyForm = (leito = '') => ({
   nut_trofica: false,
   nut_progredir: false, nut_npo_motivo: '',
 
-  dev_cv_sim: false, dev_cv_nao: false, dev_cv_sitio: '', dev_cv_obs: '',
+  dev_cv_sim: false, dev_cv_nao: false, dev_cv_ausente: false,
+  dev_cv_sitio: '', dev_cv_obs: '',
+  dev_shilley_sim: false, dev_shilley_nao: false, dev_shilley_ausente: false,
   dev_shilley_sitio: '', dev_shilley_obs: '',
   dev_sne_sim: false, dev_sne_nao: false, dev_sne_ausente: false, dev_sne_obs: '',
   dev_gtt_sim: false, dev_gtt_nao: false, dev_gtt_ausente: false, dev_gtt_obs: '',
@@ -82,7 +84,8 @@ const GRUPOS_EXCLUSIVOS = [
   ['nut_npo', 'nut_gtt'],
   ['nut_npo', 'nut_trofica'],
   ['nut_alvo_sim', 'nut_alvo_nao'],
-  ['dev_cv_sim', 'dev_cv_nao'],
+  ['dev_cv_sim', 'dev_cv_nao', 'dev_cv_ausente'],
+  ['dev_shilley_sim', 'dev_shilley_nao', 'dev_shilley_ausente'],
   ['dev_sne_sim', 'dev_sne_nao', 'dev_sne_ausente'],
   ['dev_gtt_sim', 'dev_gtt_nao', 'dev_gtt_ausente'],
   ['dev_svd_sim', 'dev_svd_nao', 'dev_svd_ausente'],
@@ -661,8 +664,8 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
           </thead>
           <tbody>
             {[
-              { l:'CV',    sitio:form.dev_cv_sitio, sim:form.dev_cv_sim,     nao:form.dev_cv_nao,     obs:form.dev_cv_obs,      cb:true  },
-              { l:'Shilley',sitio:form.dev_shilley_sitio, sim:false,           nao:false,               obs:form.dev_shilley_obs, cb:false },
+              { l:'CVC',   sitio:form.dev_cv_sitio, sim:form.dev_cv_sim,     nao:form.dev_cv_nao,     obs:form.dev_cv_obs,      cb:true, ausente:form.dev_cv_ausente },
+              { l:'Shilley',sitio:form.dev_shilley_sitio, sim:form.dev_shilley_sim, nao:form.dev_shilley_nao, obs:form.dev_shilley_obs, cb:true, ausente:form.dev_shilley_ausente },
               { l:'SNE',   sitio:'',                sim:form.dev_sne_sim,    nao:form.dev_sne_nao,    obs:form.dev_sne_obs,     cb:true, ausente:form.dev_sne_ausente },
               { l:'SVD',   sitio:'',                sim:form.dev_svd_sim,    nao:form.dev_svd_nao,    obs:form.dev_svd_obs,     cb:true, ausente:form.dev_svd_ausente },
               { l:'Gastrostomia', sitio:'',          sim:form.dev_gtt_sim,    nao:form.dev_gtt_nao,    obs:form.dev_gtt_obs,     cb:true, ausente:form.dev_gtt_ausente },
@@ -1498,8 +1501,8 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               <span style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Dispositivos</span>
             </div>
             {[
-              { label:'CVC',    simK:'dev_cv_sim',     naoK:'dev_cv_nao',     obsK:'dev_cv_obs',     sitioK:'dev_cv_sitio' },
-              { label:'Shilley',simK:null,              naoK:null,             obsK:'dev_shilley_obs', sitioK:'dev_shilley_sitio' },
+              { label:'CVC',    simK:'dev_cv_sim',      naoK:'dev_cv_nao',      obsK:'dev_cv_obs',      sitioK:'dev_cv_sitio',      ausenteK:'dev_cv_ausente' },
+              { label:'Shilley',simK:'dev_shilley_sim', naoK:'dev_shilley_nao', obsK:'dev_shilley_obs', sitioK:'dev_shilley_sitio', ausenteK:'dev_shilley_ausente' },
               { label:'SNE',    simK:'dev_sne_sim',    naoK:'dev_sne_nao',    obsK:'dev_sne_obs',    ausenteK:'dev_sne_ausente' },
               { label:'SVD',    simK:'dev_svd_sim',    naoK:'dev_svd_nao',    obsK:'dev_svd_obs',    ausenteK:'dev_svd_ausente' },
               { label:'Gastrostomia', simK:'dev_gtt_sim', naoK:'dev_gtt_nao', obsK:'dev_gtt_obs', ausenteK:'dev_gtt_ausente' },
