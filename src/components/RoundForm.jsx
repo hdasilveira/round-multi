@@ -35,7 +35,7 @@ export const emptyForm = (leito = '') => ({
 
   sec_sim: false, sec_nao: false, sec_aspecto: '',
   sec_qtd_peq: false, sec_qtd_med: false, sec_qtd_gde: false,
-  sec_tosse_ef: false, sec_tosse_parc: false,
+  sec_tosse_ef: false, sec_tosse_parc: false, sec_tosse_inef: false,
 
   step_a: false, step_b: false, step_c: false, step_d: false,
   step_e: false, step_f: false, step_nao: false,
@@ -75,7 +75,7 @@ const GRUPOS_EXCLUSIVOS = [
   ['cuff_na', 'cuff_sim', 'cuff_nao'],
   ['sec_sim', 'sec_nao'],
   ['sec_qtd_peq', 'sec_qtd_med', 'sec_qtd_gde'],
-  ['sec_tosse_ef', 'sec_tosse_parc'],
+  ['sec_tosse_ef', 'sec_tosse_parc', 'sec_tosse_inef'],
   // As vias podem coexistir (SNE + dieta trófica, VO + suplemento). Só o
   // jejum é excludente: quem está em NPO não está recebendo por via alguma.
   ['nut_npo', 'nut_vo'],
@@ -121,7 +121,8 @@ const SUGESTOES = {
   sed_pausar_motivo: ['Neuroproteção', 'Pós-PCR', 'Desconforto', 'Hipertensão intracraniana',
                       'Instabilidade hemodinâmica', 'Assincronia ventilatória', 'Bloqueio neuromuscular',
                       'Status epilepticus', 'Hipoxemia grave'],
-  desm_motivo:       ['Ventilação com parâmetros elevados', 'Sem sensório'],
+  desm_motivo:       ['Ventilação com parâmetros elevados', 'Sem sensório', 'Neuroproteção'],
+  lpp_tratamento:    ['Dexpantenol', 'Gel para lesão por pressão com Alginato'],
   lpp_local:         ['Sacral', 'Calcâneo', 'Trocantérica', 'Occipital', 'Maleolar', 'Isquiática'],
   sec_aspecto:       ['Mucoide', 'Hialina', 'Purulenta', 'Piossanguinolenta', 'Sanguinolenta'],
   dev_cv_sitio:      ['VJiD', 'VJiE', 'VSCD', 'VSCE', 'VAD', 'VAE', 'VFD', 'VFE'],
@@ -623,6 +624,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
         {' '}Tosse:
         <span className="rp-cb"><PCB c={form.sec_tosse_ef} /> efetiva</span>
         <span className="rp-cb"><PCB c={form.sec_tosse_parc} /> parcialmente efetiva</span>
+        <span className="rp-cb"><PCB c={form.sec_tosse_inef} /> inefetiva</span>
         {' '}Aspecto: <UL v={form.sec_aspecto} w />
       </div>
 
@@ -1385,6 +1387,7 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               <span style={lblStyle}>Tosse:</span>
               {CB('sec_tosse_ef', 'Efetiva', gr)}
               {CB('sec_tosse_parc', 'Parcialmente efetiva', ye)}
+              {CB('sec_tosse_inef', 'Inefetiva', re)}
             </div>
             {/* O aspecto ganha linha própria: encaixado no meio da anterior,
                 ele partia os botões de tosse ao meio. */}
@@ -1574,16 +1577,15 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
               {CB('lpp_sim', 'Sim', re)}
               {CB('lpp_nao', 'Não', gr)}
               {form.lpp_sim && <>
-                <span style={lblStyle}>Tratamento:</span>
-                <input type="text" value={form.lpp_tratamento}
-                  onChange={e => upd('lpp_tratamento', e.target.value)}
-                  placeholder="curativo, cobertura..."
-                  style={{ ...inputStyle() }}
-                  onFocus={e => { e.target.style.borderColor = ac; }}
-                  onBlur={e  => { e.target.style.borderColor = T.border; }}
-                />
               </>}
             </div>
+            {form.lpp_sim && (
+              <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
+                <Sugestoes opcoes={SUGESTOES.lpp_tratamento} valor={form.lpp_tratamento}
+                  onChange={v => upd('lpp_tratamento', v)} cor={ac} T={T} inputStyle={inputStyle}
+                  rotulo="Tratamento" placeholder="outro curativo ou cobertura"/>
+              </div>
+            )}
             {form.lpp_sim && (
               <div style={{ padding: estreito ? '0 13px 14px' : '0 18px 16px' }}>
                 <EditorLesoes lesoes={form.lpp_lesoes} onChange={v => upd('lpp_lesoes', v)}
