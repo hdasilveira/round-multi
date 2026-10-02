@@ -12,6 +12,7 @@
 import React, { useContext, useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
 import NewsScore from './NewsScore';
+import Cronometro from './Cronometro';
 
 // ─── ESTADO INICIAL ───────────────────────────────────────────────────────────
 export const emptyForm = (leito = '') => ({
@@ -759,7 +760,7 @@ Inicial: <UL v={form.cuff_v1} /> · Ajustado para: <UL v={form.cuff_v2} /> / <UL
  * leitos da área já foram feitos — assim sair e voltar não perde nada e a
  * impressão de qualquer leito continua disponível.
  */
-export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar, onConcluir }) {
+export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar, onConcluir, sessao }) {
   // Tablet em pé tem cerca de 768px: abaixo disso os controles empilham.
   const [estreito, setEstreito] = useState(
     typeof window !== 'undefined' ? window.innerWidth < 900 : false
@@ -1178,6 +1179,8 @@ export default function RoundForm({ ThemeCtxRef, leito, form, setForm, onVoltar,
             background: `${ac}18`, border: `1px solid ${ac}40`,
             fontSize: 13, color: ac, fontWeight: 700,
           }}>Leito {leito}</div>
+
+          <Cronometro T={T} sessao={sessao} compacto/>
 
           <div style={{ flex: 1 }} />
 
