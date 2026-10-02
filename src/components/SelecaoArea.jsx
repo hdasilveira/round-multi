@@ -4,8 +4,9 @@
  */
 import React from 'react';
 import { AREAS, leitosDaArea, contagem } from '../utils/sessao';
+import Cronometro from './Cronometro';
 
-export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, onDescartar, onTutorial, dark, onToggleTheme }) {
+export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, onDescartar, onTutorial, onPararTempo, dark, onToggleTheme }) {
   const cont = contagem(sessaoAberta);
 
   return (
@@ -50,6 +51,11 @@ export default function SelecaoArea({ T, sessaoAberta, onEscolher, onRetomar, on
               </div>
               <div style={{ fontSize: 13.5, color: T.textMuted, marginTop: 5, lineHeight: 1.6 }}>
                 {cont.feito} concluído(s) · {cont.pendente} pendente(s) · {cont.vazio + cont.alta} justificado(s)
+              </div>
+              {/* Parar aqui serve para quem abriu o app só para uma consulta
+                  rápida e não quer que isso entre no tempo do round. */}
+              <div style={{ marginTop: 12 }}>
+                <Cronometro T={T} sessao={sessaoAberta} onParar={onPararTempo}/>
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
                 <button onClick={onRetomar} style={{
