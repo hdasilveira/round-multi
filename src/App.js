@@ -13,6 +13,7 @@ import Tutorial, { jaViuTutorial } from './components/Tutorial';
 import RoundForm, { emptyForm } from './components/RoundForm';
 import {
   novaSessao, carregarSessao, salvarSessao, apagarSessao, hoje,
+  iniciarCronometro, pararCronometro, retomarCronometro, concluida,
 } from './utils/sessao';
 
 export const ThemeCtx = createContext(DARK);
@@ -54,10 +55,15 @@ export default function App() {
 
   const abrirLeito = (n) => {
     setSessao(s => {
-      const leito = s.leitos[n];
-      if (leito.form) return s;
+      // O cronômetro do round começa aqui, na primeira abertura de leito.
+      const comTempo = iniciarCronometro(s);
+      const leito = comTempo.leitos[n];
+      if (leito.form) return comTempo;
       // Primeira abertura: o formulário já nasce com o número do leito.
-      return { ...s, leitos: { ...s.leitos, [n]: { ...leito, form: emptyForm(String(n)) } } };
+      return {
+        ...comTempo,
+        leitos: { ...comTempo.leitos, [n]: { ...leito, form: emptyForm(String(n)) } },
+      };
     });
     setLeitoAberto(n);
     setTela('form');
@@ -73,22 +79,34 @@ export default function App() {
 
   const concluirLeito = () => {
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    setSessao(s => ({
-      ...s,
-      leitos: { ...s.leitos, [leitoAberto]: { ...s.leitos[leitoAberto], status: 'feito', at: hora } },
-    }));
+    setSessao(s => {
+      const proximo = {
+        ...s,
+        leitos: { ...s.leitos, [leitoAberto]: { ...s.leitos[leitoAberto], status: 'feito', at: hora } },
+      };
+      // Último leito resolvido: o round acabou e a contagem para sozinha.
+      return concluida(proximo) ? pararCronometro(proximo) : proximo;
+    });
     setLeitoAberto(null);
     setTela('painel');
   };
 
   const justificar = (n, status) => {
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    setSessao(s => ({ ...s, leitos: { ...s.leitos, [n]: { ...s.leitos[n], status, at: hora } } }));
+    setSessao(s => {
+      const proximo = { ...s, leitos: { ...s.leitos, [n]: { ...s.leitos[n], status, at: hora } } };
+      return concluida(proximo) ? pararCronometro(proximo) : proximo;
+    });
   };
 
   const reabrir = (n) => {
-    setSessao(s => ({ ...s, leitos: { ...s.leitos, [n]: { ...s.leitos[n], status: 'pendente', at: null } } }));
+    setSessao(s => retomarCronometro({
+      ...s, leitos: { ...s.leitos, [n]: { ...s.leitos[n], status: 'pendente', at: null } },
+    }));
   };
+
+  const pararTempo  = () => setSessao(s => pararCronometro(s));
+  const retomarTempo = () => setSessao(s => retomarCronometro(s));
 
   // Virou o dia com a aba aberta: a sessão de ontem não vale mais.
   useEffect(() => {
@@ -109,6 +127,7 @@ export default function App() {
           onRetomar={() => setTela('painel')}
           onDescartar={descartar}
           onTutorial={() => setTutorial(true)}
+          onPararTempo={pararTempo}
         />
       ) : tela === 'painel' ? (
         <PainelLeitos
@@ -119,6 +138,8 @@ export default function App() {
           onReabrir={reabrir}
           onTrocarArea={() => setTela('area')}
           onTutorial={() => setTutorial(true)}
+          onPararTempo={pararTempo}
+          onRetomarTempo={retomarTempo}
         />
       ) : (
         <RoundForm
@@ -128,6 +149,7 @@ export default function App() {
           setForm={atualizarForm}
           onVoltar={() => { setLeitoAberto(null); setTela('painel'); }}
           onConcluir={concluirLeito}
+          sessao={sessao}
         />
       )}
 
